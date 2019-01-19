@@ -5,4 +5,22 @@
 #ifndef PI_DISPLAY_COMMON_H
 #define PI_DISPLAY_COMMON_H
 
+#include <stdio.h>
+#include <stdlib.h>
+
+#define LOG_TAG               "PI_DISPLAY"
+
+#define LOG(format, ...) do{                                                    \
+    fprintf(stdout, "(LOG)"LOG_TAG" : "format".\n", ##__VA_ARGS__);             \
+} while(0)
+
+#define ERROR(format, ...) do{                                                  \
+      fprintf(stderr,"(ERR)"LOG_TAG" : "format".\n",##__VA_ARGS__);             \
+} while(0)
+
+#define METHOD_NOT_IMPLEMENTED(name) do{                                        \
+      ERROR("Method(%s) not implemented, exit",(name));                         \
+      exit(-1);                                                                 \
+} while(0)
+
 #endif //PI_DISPLAY_COMMON_H
