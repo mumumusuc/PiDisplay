@@ -22,17 +22,10 @@ static int read(uint8_t *buffer, size_t size) {
     METHOD_NOT_IMPLEMENTED("read");
 }
 
-Driver *new_Driver() {
-    Driver *driver = (Driver *) malloc(sizeof(Driver));
-    assert(driver);
-    driver->init = init;
-    driver->uninit = uninit;
-    driver->write = write;
-    driver->read = read;
-    return driver;
-}
-
-void delete_Driver(Driver *driver) {
-    free(driver);
-    driver = NULL;
+void init_Driver(Driver *restrict dst, Driver *restrict src) {
+    assert(dst || src);
+    dst->init = src->init;
+    dst->uninit = src->uninit;
+    dst->read = src->read;
+    dst->write = src->write;
 }

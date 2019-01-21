@@ -9,11 +9,7 @@
 
 // gpio
 typedef struct _BcmGPIO {
-    GPIO const *base;
-    fpInit init;
-    fpUninit uninit;
-    fpWrite write;
-    fpRead read;
+    GPIO base;
 } BcmGPIO;
 
 BcmGPIO *new_BcmGPIO();
@@ -23,11 +19,7 @@ void delete_BcmGPIO(BcmGPIO *);
 
 // i2c
 typedef struct _BcmI2C {
-    const I2C *base;
-    fpInit init;
-    fpUninit uninit;
-    fpWrite write;
-    fpRead read;
+    I2C base;
 } BcmI2C;
 
 BcmI2C *new_BcmI2C();
@@ -37,11 +29,7 @@ void delete_BcmI2C(BcmI2C *);
 
 // spi
 typedef struct _BcmSPI {
-    const SPI *base;
-    fpInit init;
-    fpUninit uninit;
-    fpWrite write;
-    fpRead read;
+    SPI base;
 } BcmSPI;
 
 BcmSPI *new_BcmSPI();

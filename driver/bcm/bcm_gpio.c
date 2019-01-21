@@ -35,20 +35,14 @@ BcmGPIO *new_BcmGPIO() {
     BcmGPIO *gpio = NULL;
     gpio = (BcmGPIO *) malloc(sizeof(BcmGPIO));
     assert(gpio);
-    gpio->base = (GPIO *) malloc(sizeof(GPIO));
-    assert(gpio->base);
-    gpio->init = init;
-    gpio->uninit = uninit;
-    gpio->write = write;
-    gpio->read;
+    gpio->base.base.init = init;
+    gpio->base.base.uninit = uninit;
+    gpio->base.base.write = write;
+    gpio->base.base.read = read;
     return gpio;
 }
 
 void delete_BcmGPIO(BcmGPIO *gpio) {
-    if (gpio) {
-        free(gpio->base);
-        gpio->base = NULL;
-    }
     free(gpio);
     gpio = NULL;
 }

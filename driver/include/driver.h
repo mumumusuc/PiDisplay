@@ -9,57 +9,57 @@
 
 typedef void(*fpDriverInit)(void *);
 
-typedef void(*fpUninit)();
+typedef void(*fpDriverUninit)();
 
-typedef int(*fpWrite)(uint8_t *, size_t);
+typedef int(*fpDriverWrite)(uint8_t *, size_t);
 
-typedef int(*fpRead)(uint8_t *, size_t);
+typedef int(*fpDriverRead)(uint8_t *, size_t);
 
+// define general driver
 typedef struct _Driver {
     fpDriverInit init;
-    fpUninit uninit;
-    fpWrite write;
-    fpRead read;
+    fpDriverUninit uninit;
+    fpDriverWrite write;
+    fpDriverRead read;
 } Driver;
 
+void init_Driver(Driver *restrict, Driver *restrict);
+// end define general driver
+
+// define gpio
 typedef struct _GPIOInfo {
     uint8_t pin;
     uint8_t mode;
 } GPIOInfo;
 
 typedef struct _GPIO {
-    fpDriverInit init;
-    fpUninit uninit;
-    fpWrite write;
-    fpRead read;
+    Driver base;
 } GPIO;
 
+void init_GPIO(GPIO *, GPIO *);
+
+// end define gpio
+
+// define i2c
 typedef struct _I2CInfo {
     uint8_t address;
     uint32_t baudrate;
-};
+} I2CInfo;
 
 typedef struct _I2C {
-    fpDriverInit init;
-    fpUninit uninit;
-    fpWrite write;
-    fpRead read;
+    Driver base;
 } I2C;
+// end define i2c
 
+// define spi
 typedef struct _SPIInfo {
     uint8_t cs;
     uint32_t speed;
-};
+} SPIInfo;
 
 typedef struct _SPI {
-    fpDriverInit init;
-    fpUninit uninit;
-    fpWrite write;
-    fpRead read;
+    Driver base;
 } SPI;
-
-Driver *new_Driver();
-
-void delete_Driver(Driver *);
+// end define spi
 
 #endif //PI_DISPLAY_DRIVER_H

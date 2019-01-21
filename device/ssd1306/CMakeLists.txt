@@ -4,5 +4,6 @@ set(CMAKE_C_STANDARD 99)
 project(device_ssd1306)
 
 aux_source_directory(. SRC_FILES)
+link_libraries(driver)
 add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
 

@@ -11,37 +11,46 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+typedef struct _DisplayInfo DisplayInfo;
 
-typedef void(*fpInit)(struct _BaseDisplay *);
+typedef struct _BaseDisplay BaseDisplay;
 
-typedef void(*fpReset)(struct _BaseDisplay *);
+typedef struct _DisplayOps DisplayOps;
 
-typedef void(*fpTurnOn)(struct _BaseDisplay *);
+typedef void(*fpInit)(BaseDisplay *);
 
-typedef void(*fpTurnOff)(struct _BaseDisplay *);
+typedef void(*fpReset)(BaseDisplay *);
 
-typedef void(*fpUpdate)(struct _BaseDisplay *, void *);
+typedef void(*fpTurnOn)(BaseDisplay *);
 
-typedef struct _DisplayOps {
+typedef void(*fpTurnOff)(BaseDisplay *);
+
+typedef void(*fpUpdate)(BaseDisplay *, void *);
+
+struct _DisplayInfo {
+    char vendor[16];
+    size_t width;
+    size_t height;
+    uint8_t pixel_format;
+};
+
+struct _DisplayOps {
     fpInit init;
     fpReset reset;
     fpTurnOn turn_on;
     fpTurnOff turn_off;
     fpUpdate update;
-} DisplayOps;
+};
 
-typedef struct _BaseDisplay {
-    char vendor[16];
-    size_t width;
-    size_t height;
-    uint8_t pixel_format;
-    DisplayOps *ops;
-} BaseDisplay;
+struct _BaseDisplay {
+    DisplayInfo info;
+    DisplayOps ops;
+};
 
 // constructor
 BaseDisplay *new_Display();
 
-void init_Display(BaseDisplay *, DisplayOps *);
+void init_Display(BaseDisplay *, DisplayOps *, DisplayInfo *);
 
 void delete_Display(BaseDisplay *);
 

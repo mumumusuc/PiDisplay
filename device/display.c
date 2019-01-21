@@ -33,10 +33,12 @@ static void update(void *self, void *buffer) {
 BaseDisplay *new_Display() {
     BaseDisplay *display = (BaseDisplay *) malloc(sizeof(BaseDisplay));
     assert(display);
-    strcpy(display->vendor, "BaseDisplay");
-    display->width = 0;
-    display->height = 0;
-    display->ops = (DisplayOps *) malloc(sizeof(DisplayOps));
+    DisplayInfo info = {
+            .width = 0,
+            .height = 0,
+            .pixel_format = 0,
+            .vendor = "BaseDisplay",
+    };
     DisplayOps ops = {
             .init = init,
             .reset = reset,
@@ -44,28 +46,29 @@ BaseDisplay *new_Display() {
             .turn_off = turn_off,
             .update = update,
     };
-    init_Display(display, &ops);
+    init_Display(display, &ops, &info);
     return display;
 }
 
 void delete_Display(BaseDisplay *display) {
-    free(display->ops);
-    display->ops = NULL;
     free(display);
     display = NULL;
 }
 
 
-void init_Display(BaseDisplay *display, DisplayOps *ops) {
-    assert(display);
-    assert(ops);
-    DisplayOps *ptrOps = display->ops;
-    free(ptrOps);
+void init_Display(BaseDisplay *display, DisplayOps *ops, DisplayInfo *info) {
+    assert(display && ops && info);
+    strcpy(display->info.vendor, info->vendor);
+    display->info.width = info->width;
+    display->info.height = info->height;
+    display->info.pixel_format = info->pixel_format;
+    DisplayOps *ptrOps = &(display->ops);
     ptrOps->init = ops->init;
     ptrOps->reset = ops->reset;
     ptrOps->turn_on = ops->turn_on;
     ptrOps->turn_off = ops->turn_off;
     ptrOps->update = ops->update;
+    ptrOps = NULL;
 }
 
 
