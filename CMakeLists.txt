@@ -11,5 +11,5 @@ add_subdirectory(device)
 add_subdirectory(driver)
 
 aux_source_directory(. SRC_FILES)
-link_libraries(display_device)
+link_libraries(device driver)
 add_executable(${PROJECT_NAME} ${SRC_FILES})

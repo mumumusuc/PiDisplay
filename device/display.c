@@ -3,14 +3,12 @@
 //
 
 #include <assert.h>
-#include "display.h"
+#include <string.h>
+#include "common.h"
+#include "include/display.h"
 
 
 // implement base device methods
-static void get_info(void *self, DisplayInfo *info) {
-    METHOD_NOT_IMPLEMENTED("get_info");
-}
-
 static void init(void *self) {
     METHOD_NOT_IMPLEMENTED("init");
 }
@@ -33,26 +31,41 @@ static void update(void *self, void *buffer) {
 
 // constructor & destructor
 BaseDisplay *new_Display() {
-    BaseDisplay *display = NULL;
-    display = (BaseDisplay *) calloc(1, sizeof(BaseDisplay));
+    BaseDisplay *display = (BaseDisplay *) malloc(sizeof(BaseDisplay));
     assert(display);
-    display->parent = (BaseDevice *) calloc(1, sizeof(BaseDevice));
-    assert(display->parent);
-    display->get_info = get_info;
-    display->init = init;
-    display->reset = reset;
-    display->turn_on = turn_on;
-    display->turn_off = turn_off;
-    display->update = update;
+    strcpy(display->vendor, "BaseDisplay");
+    display->width = 0;
+    display->height = 0;
+    display->ops = (DisplayOps *) malloc(sizeof(DisplayOps));
+    DisplayOps ops = {
+            .init = init,
+            .reset = reset,
+            .turn_on = turn_on,
+            .turn_off = turn_off,
+            .update = update,
+    };
+    init_Display(display, &ops);
+    return display;
 }
 
 void delete_Display(BaseDisplay *display) {
-    if (display) {
-        free(display->parent);
-        display->parent = NULL;
-    }
+    free(display->ops);
+    display->ops = NULL;
     free(display);
     display = NULL;
+}
+
+
+void init_Display(BaseDisplay *display, DisplayOps *ops) {
+    assert(display);
+    assert(ops);
+    DisplayOps *ptrOps = display->ops;
+    free(ptrOps);
+    ptrOps->init = ops->init;
+    ptrOps->reset = ops->reset;
+    ptrOps->turn_on = ops->turn_on;
+    ptrOps->turn_off = ops->turn_off;
+    ptrOps->update = ops->update;
 }
 
 

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_C_STANDARD 99)
 
-project(display_driver)
+project(driver)
 message("Make display driver libs.")
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SRC_FILES)

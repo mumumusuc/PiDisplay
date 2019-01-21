@@ -4,9 +4,9 @@
 
 #include <assert.h>
 #include <string.h>
-#include "ssd1306_common.h"
-#include "ssd1306.h"
-#include "ssd1306_private.h"
+#include "common.h"
+#include "ssd1306_def.h"
+#include "ssd1306_priv.h"
 
 // private methods
 
@@ -175,17 +175,6 @@ static void clean(Ssd1306Display *self) {
 };
 
 // implement methods
-static void get_info(void *self, DisplayInfo *info) {
-    LOG("get_info");
-    assert(info);
-    if (!info->vendor) {
-        info->vendor = (char *) malloc(16);
-    }
-    info->width = SCREEN_COLUMNS;
-    info->height = SCREEN_ROWS;
-    info->pixel_format = 1;
-    strcpy(info->vendor, "SSD1306_128_64");
-}
 
 static void init(void *self) {
     LOG("init");
@@ -203,7 +192,7 @@ static void init(void *self) {
 static void reset(void *self) {
     LOG("reset");
     Ssd1306Display *_self = (Ssd1306Display *) self;
-    _self->turn_off(self);
+    //_self->turn_off(self);
     clean(self);
     set_reverse(self, SSD1306_FALSE, SSD1306_TRUE);
     set_mapping(self, 0, 0, 64);
@@ -242,35 +231,42 @@ static void update(void *self, void *buffer) {
     update_screen(_self, buffer);
 }
 
-static void write_data(void *self, uint8_t data) {
+static void write_data(Ssd1306Display *self, uint8_t data) {
     METHOD_NOT_IMPLEMENTED("write_data");
 }
 
-static void write_cmd(void *self, uint8_t cmd) {
+static void write_cmd(Ssd1306Display *self, uint8_t cmd) {
     METHOD_NOT_IMPLEMENTED("write_cmd");
 }
 
 // constructor & destructor
-Ssd1306Display *new_Ssd1306Display() {
-    Ssd1306Display *display = NULL;
-    display = (Ssd1306Display *) calloc(1, sizeof(Ssd1306Display));
+Ssd1306Display *new_Ssd1306Display(GPIO *gpio) {
+    assert(gpio);
+    Ssd1306Display *display = (Ssd1306Display *) malloc(sizeof(Ssd1306Display));
     assert(display);
-    display->parent = (const BaseDisplay *) new_Display();
-    assert(display->parent);
-    display->get_info = get_info;
-    display->init = init;
-    display->reset = reset;
-    display->turn_on = turn_on;
-    display->turn_off = turn_off;
-    display->update = update;
-    display->write_data = write_data;
+    display->gpio = new_Driver();
+    free(display->gpio);
+    display->gpio->init = gpio->init;
+    display->gpio->uninit = gpio->uninit;
+    display->gpio->write = gpio->write;
+    display->gpio->read = gpio->read;
+    DisplayOps ops = {
+            .init = init,
+            .reset = reset,
+            .turn_on = turn_on,
+            .turn_off = turn_off,
+            .update = update,
+    };
+    display->base = new_Display();
+    init_Display(display->base, &ops);
     display->write_cmd = write_cmd;
+    display->write_data = write_data;
 }
 
 void delete_Ssd1306Display(Ssd1306Display *self) {
     if (self) {
-        delete_Display(self->parent);
-        self->parent = NULL;
+        delete_Display(self->base);
+        self->base = NULL;
     }
     free(self);
     self = NULL;
