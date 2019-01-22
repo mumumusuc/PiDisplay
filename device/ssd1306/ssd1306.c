@@ -170,7 +170,7 @@ static void begin(Display *self) {
     Ssd1306 *_self = container_of(self, Ssd1306, base);
     _self->ops.init_com(_self);
     GPIOInfo info = {
-            .pin = HW_RST_PIN_1,
+            .pin = _self->pin_reset,
             .mode = GPIO_MODE_OUTPUT,
     };
     GPIO gpio = _self->gpio;
