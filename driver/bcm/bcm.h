@@ -6,7 +6,7 @@
 #define PI_DISPLAY_BCM_H
 
 #include "driver.h"
-
+#define DELAY(m_sec)    do{ ;}while(0)
 // gpio
 typedef struct _BcmGPIO {
     GPIO base;
@@ -14,7 +14,7 @@ typedef struct _BcmGPIO {
 
 BcmGPIO *new_BcmGPIO();
 
-void delete_BcmGPIO(BcmGPIO *);
+void del_BcmGPIO(BcmGPIO *);
 // end gpio
 
 // i2c
@@ -24,7 +24,7 @@ typedef struct _BcmI2C {
 
 BcmI2C *new_BcmI2C();
 
-void delete_BcmI2C(BcmI2C *);
+void del_BcmI2C(BcmI2C *);
 //end i2c
 
 // spi
@@ -34,7 +34,7 @@ typedef struct _BcmSPI {
 
 BcmSPI *new_BcmSPI();
 
-void delete_BcmSPI(BcmSPI *);
+void del_BcmSPI(BcmSPI *);
 //end spi
 
 #endif //PI_DISPLAY_BCM_H

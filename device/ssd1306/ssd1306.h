@@ -12,46 +12,79 @@
 extern "C" {
 #endif
 
-typedef struct _Ssd1306Display Ssd1306Display;
+typedef struct _Ssd1306 Ssd1306;
 
-typedef void(*fpInitCom)(Ssd1306Display *);
+typedef struct _Ssd1306Ops SsdOps;
 
-typedef void(*fpUninitCom)(Ssd1306Display *);
+typedef void(*fpSsdInitCom)(Ssd1306 *);
 
-typedef void(*fpWriteData)(Ssd1306Display *, uint8_t);
+typedef void(*fpSsdUninitCom)(Ssd1306 *);
 
-typedef void(*fpWriteCmd)(Ssd1306Display *, uint8_t);
+typedef void(*fpSsdWriteData)(Ssd1306 *, uint8_t);
+
+typedef void(*fpSsdWriteCmd)(Ssd1306 *, uint8_t);
 
 // define ssd1306
-struct _Ssd1306Display {
-    BaseDisplay base;
-    fpInitCom init_com;
-    fpUninitCom uninit_com;
-    fpWriteCmd write_cmd;
-    fpWriteData write_data;
-    GPIO gpio;
+struct _Ssd1306Ops {
+    fpSsdInitCom init_com;
+    fpSsdUninitCom uninit_com;
+    fpSsdWriteCmd write_cmd;
+    fpSsdWriteData write_data;
 };
 
+struct _Ssd1306 {
+    // use Pointer referring base-struct
+    Display base;
+    GPIO gpio;
+    SsdOps ops;
+    uint8_t pin_reset;
+};
+
+Ssd1306 *new_Ssd1306(GPIO *, uint8_t rst);
+
+void del_Ssd1306(Ssd1306 *);
+
+void init_Ssd1306(Ssd1306 *, GPIO *, SsdOps *ops, uint8_t rst);
+// end define ssd1306
+
 // define ssd1306_i2c
-typedef struct _Ssd1306Display_I2C {
-    Ssd1306Display base;
-    Driver i2c;
-} Ssd1306Display_I2C;
+typedef struct _Ssd1306_I2C {
+    Ssd1306 base;
+    I2C i2c;
+} Ssd1306_I2C;
+// end define ssd1306_i2c
 
 // define ssd1306_spi4
-typedef struct _Ssd1306Display_SPI4 {
-    Ssd1306Display base;
-    Driver spi4;
-} Ssd1306Display_SPI4;
+typedef struct _Ssd1306_SPI4 {
+    Ssd1306 base;
+    SPI spi4;
+} Ssd1306_SPI4;
+// end define ssd1306_spi4
 
-Ssd1306Display *new_Ssd1306Display_I2C(GPIO *, I2C *);
+// define constructor & destructor
+Ssd1306_I2C *new_Ssd1306_I2C(GPIO *, I2C *);
 
-Ssd1306Display *new_Ssd1306Display_SPI(GPIO *, SPI *);
+void del_Ssd1306_I2C(Ssd1306_I2C *);
 
-void init_Ssd1306Display(Ssd1306Display *, GPIO *);
+Ssd1306_SPI4 *new_Ssd1306_SPI4(GPIO *, SPI *);
 
-void delete_Ssd1306Display(Ssd1306Display *);
-// end define ssd1306
+void del_Ssd1306_SPI4(Ssd1306_SPI4 *);
+// end define constructor & destructor
+
+// privates
+static void begin(Display *);
+
+static void reset(Display *);
+
+static void turn_on(Display *);
+
+static void clear(Display *);
+
+static void update(Display *, void *);
+
+static void turn_off(Display *);
+
+static void end(Display *);
 
 #ifdef __cplusplus
 }

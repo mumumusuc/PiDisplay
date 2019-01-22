@@ -7,31 +7,59 @@
 #include "common.h"
 #include "include/display.h"
 
-
-// implement base device methods
-static void init(void *self) {
-    METHOD_NOT_IMPLEMENTED("init");
+// default methods
+static void begin(Display *self) {
+    METHOD_NOT_IMPLEMENTED("begin");
 }
 
-static void reset(void *self) {
+static void reset(Display *self) {
     METHOD_NOT_IMPLEMENTED("reset");
 }
 
-static void turn_on(void *self) {
+static void turn_on(Display *self) {
     METHOD_NOT_IMPLEMENTED("turn_on");
 }
 
-static void turn_off(void *self) {
-    METHOD_NOT_IMPLEMENTED("turn_off");
+static void clear(Display *self) {
+    METHOD_NOT_IMPLEMENTED("clear");
 }
 
-static void update(void *self, void *buffer) {
+static void update(Display *self, void *buffer) {
     METHOD_NOT_IMPLEMENTED("update");
 }
 
+static void turn_off(Display *self) {
+    METHOD_NOT_IMPLEMENTED("turn_off");
+}
+
+
+static void end(Display *self) {
+    METHOD_NOT_IMPLEMENTED("end");
+}
+
+
+void init_Display(Display *display, DisplayOps *ops, DisplayInfo *info) {
+    assert(display && ops && info);
+    // init struct DisplayInfo
+    strcpy(display->info.vendor, info->vendor);
+    display->info.width = info->width;
+    display->info.height = info->height;
+    display->info.pixel_format = info->pixel_format;
+    // init struct DisplayOps
+    DisplayOps *ptrOps = &(display->ops);
+    ptrOps->begin = ops->begin;
+    ptrOps->reset = ops->reset;
+    ptrOps->turn_on = ops->turn_on;
+    ptrOps->clear = ops->clear;
+    ptrOps->update = ops->update;
+    ptrOps->turn_off = ops->turn_off;
+    ptrOps->end = ops->end;
+    ptrOps = NULL;
+}
+
 // constructor & destructor
-BaseDisplay *new_Display() {
-    BaseDisplay *display = (BaseDisplay *) malloc(sizeof(BaseDisplay));
+Display *new_Display() {
+    Display *display = (Display *) malloc(sizeof(Display));
     assert(display);
     DisplayInfo info = {
             .width = 0,
@@ -40,35 +68,21 @@ BaseDisplay *new_Display() {
             .vendor = "BaseDisplay",
     };
     DisplayOps ops = {
-            .init = init,
+            .begin = begin,
             .reset = reset,
             .turn_on = turn_on,
-            .turn_off = turn_off,
+            .clear = clear,
             .update = update,
+            .turn_off = turn_off,
+            .end = end,
     };
     init_Display(display, &ops, &info);
     return display;
 }
 
-void delete_Display(BaseDisplay *display) {
+void del_Display(Display *display) {
     free(display);
     display = NULL;
-}
-
-
-void init_Display(BaseDisplay *display, DisplayOps *ops, DisplayInfo *info) {
-    assert(display && ops && info);
-    strcpy(display->info.vendor, info->vendor);
-    display->info.width = info->width;
-    display->info.height = info->height;
-    display->info.pixel_format = info->pixel_format;
-    DisplayOps *ptrOps = &(display->ops);
-    ptrOps->init = ops->init;
-    ptrOps->reset = ops->reset;
-    ptrOps->turn_on = ops->turn_on;
-    ptrOps->turn_off = ops->turn_off;
-    ptrOps->update = ops->update;
-    ptrOps = NULL;
 }
 
 

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <zconf.h>
 
 #define offsetof(type, member) ((size_t) &((type *)0)->member)
 
@@ -31,4 +32,5 @@
       exit(-1);                                                                 \
 } while(0)
 
+#define delay(m_sec)    do{usleep(1000*(m_sec));}while(0)
 #endif //PI_DISPLAY_COMMON_H

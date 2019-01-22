@@ -7,42 +7,49 @@
 #include "bcm.h"
 #include "bcm2835.h"
 
-static void init(void *info) {
+static void init(void *self, void *info) {
+    LOG("bcm_gpio init");
     assert(info);
-    bcm2835_init();
+    assert(bcm2835_init());
     GPIOInfo *_info = (GPIOInfo *) info;
     uint8_t pin = _info->pin;
     uint8_t mode = _info->mode;
     bcm2835_gpio_fsel(pin, mode);
 }
 
-static void uninit() {
-    LOG("uninit");
+static void uninit(void *self) {
+    LOG("bcm_gpio uninit");
     bcm2835_close();
 }
 
-static int write(uint8_t *pin, size_t level) {
-    LOG("write");
+static int dwrite(void *self, uint8_t *pin, size_t level) {
+    //LOG("bcm_gpio write: %d, %d", (*pin), level);
     bcm2835_gpio_write(*pin, (uint8_t) level);
     return 1;
 }
 
-static int read(uint8_t *pin, size_t size) {
-    return bcm2835_gpio_lev(*pin);
+static int dread(void *self, uint8_t *buff, size_t pin) {
+    //LOG("bcm_gpio read");
+    *buff = bcm2835_gpio_lev(pin);
 }
 
 BcmGPIO *new_BcmGPIO() {
-    BcmGPIO *gpio = NULL;
-    gpio = (BcmGPIO *) malloc(sizeof(BcmGPIO));
+    BcmGPIO *gpio = (BcmGPIO *) malloc(sizeof(BcmGPIO));
     assert(gpio);
-    gpio->base.base.init = init;
-    gpio->base.base.uninit = uninit;
-    gpio->base.base.write = write;
-    gpio->base.base.read = read;
+    DriverOps ops = {
+            .init = init,
+            .uninit = uninit,
+            .write = dwrite,
+            .read = dread,
+    };
+    init_GPIO(&(gpio->base), &ops);
     return gpio;
 }
 
-void delete_BcmGPIO(BcmGPIO *gpio) {
+void del_BcmGPIO(BcmGPIO *gpio) {
+    if (gpio) {
+        //del_GPIO(gpio->base);
+    }
     free(gpio);
     gpio = NULL;
 }

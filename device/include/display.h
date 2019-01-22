@@ -11,21 +11,26 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 typedef struct _DisplayInfo DisplayInfo;
 
-typedef struct _BaseDisplay BaseDisplay;
+typedef struct _Display Display;
 
 typedef struct _DisplayOps DisplayOps;
 
-typedef void(*fpInit)(BaseDisplay *);
+typedef void(*fpDspBegin)(Display *);
 
-typedef void(*fpReset)(BaseDisplay *);
+typedef void(*fpDspReset)(Display *);
 
-typedef void(*fpTurnOn)(BaseDisplay *);
+typedef void(*fpDspTurnOn)(Display *);
 
-typedef void(*fpTurnOff)(BaseDisplay *);
+typedef void(*fpDspClear)(Display *);
 
-typedef void(*fpUpdate)(BaseDisplay *, void *);
+typedef void(*fpDspUpdate)(Display *, void *);
+
+typedef void(*fpDspTurnOff)(Display *);
+
+typedef void(*fpDspEnd)(Display *);
 
 struct _DisplayInfo {
     char vendor[16];
@@ -34,25 +39,30 @@ struct _DisplayInfo {
     uint8_t pixel_format;
 };
 
+// TODO: This should be private
 struct _DisplayOps {
-    fpInit init;
-    fpReset reset;
-    fpTurnOn turn_on;
-    fpTurnOff turn_off;
-    fpUpdate update;
+    fpDspBegin begin;
+    fpDspReset reset;
+    fpDspTurnOn turn_on;
+    fpDspClear clear;
+    fpDspUpdate update;
+    fpDspTurnOff turn_off;
+    fpDspEnd end;
 };
 
-struct _BaseDisplay {
+struct _Display {
     DisplayInfo info;
     DisplayOps ops;
 };
 
-// constructor
-BaseDisplay *new_Display();
+// TODO: These should be protected
+void init_Display(Display *, DisplayOps *, DisplayInfo *);
 
-void init_Display(BaseDisplay *, DisplayOps *, DisplayInfo *);
+// constructor & destructor
+Display *new_Display();
 
-void delete_Display(BaseDisplay *);
+void del_Display(Display *);
+// end constructor
 
 #ifdef __cplusplus
 }

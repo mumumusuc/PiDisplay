@@ -13,7 +13,7 @@ find_library(
         PATHS /usr/lib/ /usr/local/lib/
 )
 if(BCM2835_INCLUDE_DIR AND BCM2835_LIBRARIES)
-    message(STATUS "    include   -> ${BCM2835_INCLUDE_DIR}")
-    message(STATUS "    libraries -> ${BCM2835_LIBRARIES}")
+    message(STATUS "---- include   -> ${BCM2835_INCLUDE_DIR}")
+    message(STATUS "---- libraries -> ${BCM2835_LIBRARIES}")
     set(BCM2835_FOUND TRUE)
 endif()
