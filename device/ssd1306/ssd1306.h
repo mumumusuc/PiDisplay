@@ -33,18 +33,11 @@ struct _Ssd1306Ops {
 };
 
 struct _Ssd1306 {
-    // use Pointer referring base-struct
     Display base;
     GPIO gpio;
     SsdOps ops;
     uint8_t pin_reset;
 };
-
-Ssd1306 *new_Ssd1306(GPIO *, uint8_t rst);
-
-void del_Ssd1306(Ssd1306 *);
-
-void init_Ssd1306(Ssd1306 *, GPIO *, SsdOps *ops, uint8_t rst);
 // end define ssd1306
 
 // define ssd1306_i2c
@@ -70,21 +63,6 @@ Ssd1306_SPI4 *new_Ssd1306_SPI4(GPIO *, SPI *);
 
 void del_Ssd1306_SPI4(Ssd1306_SPI4 *);
 // end define constructor & destructor
-
-// privates
-static void begin(Display *);
-
-static void reset(Display *);
-
-static void turn_on(Display *);
-
-static void clear(Display *);
-
-static void update(Display *, void *);
-
-static void turn_off(Display *);
-
-static void end(Display *);
 
 #ifdef __cplusplus
 }

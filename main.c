@@ -2,44 +2,51 @@
 // Created by mumumusuc on 19-1-19.
 //
 
-#include <stdio.h>
-#include <zconf.h>
 #include <string.h>
-
-#include<stdlib.h>
 #include<fcntl.h>   //open()
 #include<unistd.h>  //close()
 #include<errno.h>   //errno
 #include<sys/mman.h> //mmap()
 #include <assert.h>
+
 #include "common.h"
-#include "device/ssd1306/ssd1306.h"
-#include "driver/bcm/bcm.h"
+#include "factory.h"
+
 
 int main(int argc, char *argv[]) {
-    printf("Hello world.\n");
-    printf("Sizeof(Display) = %d.\n", sizeof(Ssd1306_I2C));
-
-
-    BcmGPIO *bcm_gpio = new_BcmGPIO();
-    BcmGPIO *bcm_gpio2 = new_BcmGPIO();
-    BcmI2C *bcm_i2c = new_BcmI2C();
-    BcmSPI *bcm_spi = new_BcmSPI();
-    Ssd1306_I2C *ssd1306_i2c = new_Ssd1306_I2C(&(bcm_gpio->base), &(bcm_i2c->base));
-    Ssd1306_SPI4 *ssd1306_spi = new_Ssd1306_SPI4(&(bcm_gpio2->base), &(bcm_spi->base));
+    /*
+    Display *disp = create_display(DISPLAY_NONE);
+    void *buffer = malloc(1);
+    printf("w = %ld , h = %ld , format = %d , vendor = %s. \n",
+           disp->info.width,
+           disp->info.height,
+           disp->info.pixel_format,
+           disp->info.vendor);
+    disp->ops.begin(disp);
+    disp->ops.reset(disp);
+    disp->ops.turn_on(disp);
+    disp->ops.clear(disp);
+    disp->ops.update(disp, buffer);
+    disp->ops.turn_off(disp);
+    disp->ops.end(disp);
+    free(buffer);
+    destroy_display(disp);
+    */
     Display *dsps[] = {
-            &(ssd1306_i2c->base.base),
-            &(ssd1306_spi->base.base)
+            create_display(DISPLAY_SSD1306_BCM_I2C),
+            create_display(DISPLAY_SSD1306_BCM_SPI4),
     };
     size_t l_dsp = 2;
-    Display *dsp = dsps[1];//&(ssd1306_i2c->base.base);
-    printf("w = %d , h = %d , format = %d , vendor = %s.\n",
+    Display *dsp = dsps[0];
+
+    printf("w = %ld , h = %ld , format = %d , vendor = %s , l_dsp = %ld. \n",
            dsp->info.width,
            dsp->info.height,
            dsp->info.pixel_format,
-           dsp->info.vendor);
+           dsp->info.vendor,
+           l_dsp);
     size_t size = (dsp->info.width) * (dsp->info.height) * (dsp->info.pixel_format) / 8;
-    LOG("need alloc %d buffer", size);
+    LOG("need alloc %ld buffer", size);
 
     const char *node = "/dev/fb0";
     int fd = open(node, O_RDWR);
@@ -63,13 +70,16 @@ int main(int argc, char *argv[]) {
         dsp->ops.begin(dsp);
         dsp->ops.reset(dsp);
         dsp->ops.turn_on(dsp);
-        //dsp->ops.clear(dsp);
+        dsp->ops.clear(dsp);
     }
 
     while ((value >>= 1) > 0) {
         memset(canvas, value, size);
-        dsps[0]->ops.update(dsps[0], canvas);
-        dsps[1]->ops.update(dsps[1], canvas);
+        for (int i = 0; i < l_dsp; i++) {
+            dsp = dsps[i];
+            dsp->ops.update(dsp, canvas);
+            dsp->ops.update(dsp, canvas);
+        }
         usleep(200 * 1000);
     }
     memset(canvas, 0, size);
@@ -78,15 +88,16 @@ int main(int argc, char *argv[]) {
     munmap(canvas, size);
     for (int i = 0; i < l_dsp; i++) {
         dsp = dsps[i];
+        printf("clear %d.\n", i);
         dsp->ops.clear(dsp);
+        printf("clear %d end.\n", i);
         dsp->ops.turn_off(dsp);
         dsp->ops.end(dsp);
     }
-    del_BcmGPIO(bcm_gpio);
-    del_BcmI2C(bcm_i2c);
-    del_BcmSPI(bcm_spi);
-    del_Ssd1306_I2C(ssd1306_i2c);
-    del_Ssd1306_SPI4(ssd1306_spi);
+    for (int i = 0; i < l_dsp; i++) {
+        dsp = dsps[i];
+        destroy_display(dsp);
+    }
 /*
     BcmGPIO *bcm_gpio = new_BcmGPIO();
     GPIO *gpio = bcm_gpio->base;

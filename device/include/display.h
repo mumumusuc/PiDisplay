@@ -32,6 +32,8 @@ typedef void(*fpDspTurnOff)(Display *);
 
 typedef void(*fpDspEnd)(Display *);
 
+typedef void(*fpDestroy)(void *);
+
 struct _DisplayInfo {
     char vendor[16];
     size_t width;
@@ -53,16 +55,9 @@ struct _DisplayOps {
 struct _Display {
     DisplayInfo info;
     DisplayOps ops;
+    fpDestroy destructor;
+    void *this;
 };
-
-// TODO: These should be protected
-void init_Display(Display *, DisplayOps *, DisplayInfo *);
-
-// constructor & destructor
-Display *new_Display();
-
-void del_Display(Display *);
-// end constructor
 
 #ifdef __cplusplus
 }

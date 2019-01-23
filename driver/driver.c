@@ -6,28 +6,42 @@
 #include "common.h"
 #include "driver.h"
 
+#define LOG_TAG     "DRIVER"
+
 static void init(void *self, void *_) {
-    LOG("driver init");
+#ifdef DEBUG
+    LOG("init");
+#else
     METHOD_NOT_IMPLEMENTED("init");
+#endif
 }
 
 static void uninit(void *self) {
-    LOG("driver uninit");
+#ifdef DEBUG
+    LOG("uninit");
+#else
     METHOD_NOT_IMPLEMENTED("uninit");
+#endif
 }
 
 static int dwrite(void *self, uint8_t *data, size_t size) {
-    LOG("driver write");
+#ifdef DEBUG
+    LOG("write");
+#else
     METHOD_NOT_IMPLEMENTED("write");
+#endif
 }
 
 static int dread(void *self, uint8_t *buffer, size_t size) {
-    LOG("driver read");
+#ifdef DEBUG
+    LOG("read");
+#else
     METHOD_NOT_IMPLEMENTED("read");
+#endif
 }
 
 static void init_Driver(void *restrict _driver, DriverOps *restrict ops) {
-    assert(_driver || ops);
+    assert(_driver && ops);
     DriverOps *driver = (DriverOps *) _driver;
     driver->init = ops->init;
     driver->uninit = ops->uninit;

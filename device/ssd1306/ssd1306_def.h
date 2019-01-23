@@ -387,8 +387,5 @@
 #define CMD_READ_DISPLAY_OFF    0x40
 /** 状态读取命令 ***××××*******************************************************/
 
-#define HW_RST_PIN_1    17
-#define HW_RST_PIN_2    27
-#define HW_DC_PIN       22
 
 #endif //PI_DISPLAY_SSD1306_H

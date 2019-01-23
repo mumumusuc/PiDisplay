@@ -7,8 +7,10 @@
 #include "bcm.h"
 #include "bcm2835.h"
 
+#define LOG_TAG     "BCM_GPIO"
+
 static void init(void *self, void *info) {
-    LOG("bcm_gpio init");
+    LOG("init");
     assert(info);
     assert(bcm2835_init());
     GPIOInfo *_info = (GPIOInfo *) info;
@@ -18,18 +20,18 @@ static void init(void *self, void *info) {
 }
 
 static void uninit(void *self) {
-    LOG("bcm_gpio uninit");
+    LOG("uninit");
     bcm2835_close();
 }
 
 static int dwrite(void *self, uint8_t *pin, size_t level) {
-    //LOG("bcm_gpio write: %d, %d", (*pin), level);
+    //LOG("write: %d, %d", (*pin), level);
     bcm2835_gpio_write(*pin, (uint8_t) level);
     return 1;
 }
 
 static int dread(void *self, uint8_t *buff, size_t pin) {
-    //LOG("bcm_gpio read");
+    //LOG("read");
     *buff = bcm2835_gpio_lev(pin);
 }
 
@@ -47,9 +49,6 @@ BcmGPIO *new_BcmGPIO() {
 }
 
 void del_BcmGPIO(BcmGPIO *gpio) {
-    if (gpio) {
-        //del_GPIO(gpio->base);
-    }
     free(gpio);
     gpio = NULL;
 }

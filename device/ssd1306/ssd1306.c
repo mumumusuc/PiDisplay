@@ -8,8 +8,9 @@
 #include "ssd1306_def.h"
 #include "ssd1306_priv.h"
 
-// private methods
+#define LOG_TAG "SSD1306"
 
+// private methods
 static void set_render_mode(Ssd1306 *self, uint8_t mode) {
     self->ops.write_cmd(self, CMD_ADDR_MODE);
     self->ops.write_cmd(self, mode);
@@ -165,7 +166,7 @@ static void update_screen(Ssd1306 *self, uint8_t *data) {
 
 // implement base methods
 static void begin(Display *self) {
-    LOG("ssd1306 begin");
+    LOG("begin");
     // TODO: init gpio & com.
     Ssd1306 *_self = container_of(self, Ssd1306, base);
     _self->ops.init_com(_self);
@@ -175,12 +176,12 @@ static void begin(Display *self) {
     };
     GPIO gpio = _self->gpio;
     gpio.ops.init(&gpio, &info);
-    info.pin = HW_RST_PIN_2;
+    info.pin = _self->pin_reset;
     gpio.ops.init(&gpio, &info);
 }
 
 static void clear(Display *self) {
-    LOG("ssd1306 clear");
+    LOG("clear");
     // TODO: clear display.
     Ssd1306 *_self = container_of(self, Ssd1306, base);
     GPIO gpio = _self->gpio;
@@ -191,7 +192,7 @@ static void clear(Display *self) {
 };
 
 static void reset(Display *self) {
-    LOG("ssd1306 reset");
+    LOG("reset");
     // TODO: init/reset display.
     Ssd1306 *_self = container_of(self, Ssd1306, base);
     self->ops.clear(self);
@@ -211,7 +212,7 @@ static void reset(Display *self) {
 }
 
 static void turn_on(Display *self) {
-    LOG("ssd1306 turn_on");
+    LOG("turn_on");
     // TODO: turn on display.
     Ssd1306 *_self = (Ssd1306 *) self;
     _self->ops.write_cmd(_self, CMD_POWER_CHARGE_PUMP);
@@ -220,7 +221,7 @@ static void turn_on(Display *self) {
 }
 
 static void update(Display *self, void *buffer) {
-    LOG("ssd1306 update");
+    LOG("update");
     // TODO: update display with the buffer.
     assert(buffer);
     Ssd1306 *_self = (Ssd1306 *) self;
@@ -228,7 +229,7 @@ static void update(Display *self, void *buffer) {
 }
 
 static void turn_off(Display *self) {
-    LOG("ssd1306 turn_off");
+    LOG("turn_off");
     // TODO: turn off display.
     Ssd1306 *_self = (Ssd1306 *) self;
     _self->ops.write_cmd(_self, CMD_POWER_CHARGE_PUMP);
@@ -237,7 +238,7 @@ static void turn_off(Display *self) {
 }
 
 static void end(Display *self) {
-    LOG("ssd1306 end");
+    LOG("end");
     // TODO: uninit gpio & com.
     Ssd1306 *_self = (Ssd1306 *) self;
     _self->ops.uninit_com(_self);
@@ -245,19 +246,35 @@ static void end(Display *self) {
 
 // protected methods
 static void init_com(Ssd1306 *self) {
+#ifdef DEBUG
+    ERROR("init_com");
+#else
     METHOD_NOT_IMPLEMENTED("init_com");
+#endif
 }
 
 static void uninit_com(Ssd1306 *self) {
+#ifdef DEBUG
+    ERROR("uninit_com");
+#else
     METHOD_NOT_IMPLEMENTED("uninit_com");
+#endif
 }
 
 static void write_data(Ssd1306 *self, uint8_t data) {
+#ifdef DEBUG
+    ERROR("write_data");
+#else
     METHOD_NOT_IMPLEMENTED("write_data");
+#endif
 }
 
 static void write_cmd(Ssd1306 *self, uint8_t cmd) {
+#ifdef DEBUG
+    ERROR("write_cmd");
+#else
     METHOD_NOT_IMPLEMENTED("write_cmd");
+#endif
 }
 
 // constructor & destructor
@@ -276,7 +293,7 @@ Ssd1306 *new_Ssd1306(GPIO *gpio, uint8_t rst) {
 }
 
 void init_Ssd1306(Ssd1306 *display, GPIO *gpio, SsdOps *ops, uint8_t rst) {
-    assert(display || gpio || ops);
+    assert(display && gpio && ops);
     display->pin_reset = rst;
     // init gpio
     init_GPIO(&(display->gpio), gpio);
@@ -297,6 +314,7 @@ void init_Ssd1306(Ssd1306 *display, GPIO *gpio, SsdOps *ops, uint8_t rst) {
             .end = end,
     };
     init_Display(&(display->base), &dsp_ops, &dsp_info);
+    init_Base(&(display->base), display, del_Ssd1306);
     // init private members
     display->ops.init_com = ops->init_com;
     display->ops.uninit_com = ops->uninit_com;

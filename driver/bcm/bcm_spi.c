@@ -2,15 +2,15 @@
 // Created by mumumusuc on 19-1-19.
 //
 
-
-#include <stdlib.h>
 #include <assert.h>
 #include "common.h"
 #include "bcm.h"
 #include "bcm2835.h"
 
+#define LOG_TAG     "BCM_SPI"
+
 static void init(void *self, void *info) {
-    LOG("bcm_spi init");
+    LOG("init");
     assert(info);
     assert(bcm2835_init());
     SPIInfo *_info = (SPIInfo *) info;
@@ -24,20 +24,20 @@ static void init(void *self, void *info) {
 }
 
 static void uninit(void *self) {
-    LOG("bcm_spi uninit");
+    LOG("uninit");
     bcm2835_spi_end();
     bcm2835_close();
 }
 
 static int dwrite(void *self, uint8_t *buf, size_t len) {
-    //LOG("bcm_i2c write");
+    //LOG("write");
     bcm2835_spi_transfern(buf, len);
     //return bcm2835_i2c_write(buf, len);
     return 1;
 }
 
 static int dread(void *self, uint8_t *buf, size_t len) {
-    //LOG("bcm_i2c write");
+    //LOG("write");
     return 1;//bcm2835_i2c_read(buf, len);
 }
 
