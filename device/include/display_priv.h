@@ -7,6 +7,10 @@
 
 #include "display.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // constructor & destructor
 Display *new_Display();
 
@@ -17,4 +21,7 @@ void init_Display(Display *, DisplayOps *, DisplayInfo *);
 void del_Display(Display *);
 // end constructor
 
+#ifdef __cplusplus
+}
+#endif
 #endif //PI_DISPLAY_DISPLAY_PRIV_H

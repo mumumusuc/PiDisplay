@@ -6,10 +6,16 @@ project(pi_display)
 include_directories(include)
 include_directories(device/include)
 include_directories(driver/include)
+include_directories(graphic/include)
 
 add_subdirectory(device)
 add_subdirectory(driver)
+add_subdirectory(graphic)
 
-aux_source_directory(. SRC_FILES)
-link_libraries(device driver)
+aux_source_directory(${CMAKE_SOURCE_DIR} SRC_FILES)
+link_libraries(device)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
+
+set(ffmpeg avformat avcodec avutil swscale avdevice)
+
+target_link_libraries(${PROJECT_NAME} ${ffmpeg})

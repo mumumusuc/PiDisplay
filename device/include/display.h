@@ -18,6 +18,7 @@ typedef struct _Display Display;
 
 typedef struct _DisplayOps DisplayOps;
 
+
 typedef void(*fpDspBegin)(Display *);
 
 typedef void(*fpDspReset)(Display *);
@@ -41,7 +42,6 @@ struct _DisplayInfo {
     uint8_t pixel_format;
 };
 
-// TODO: This should be private
 struct _DisplayOps {
     fpDspBegin begin;
     fpDspReset reset;
@@ -52,12 +52,15 @@ struct _DisplayOps {
     fpDspEnd end;
 };
 
+typedef struct _VTbl VTbl;
+
 struct _Display {
     DisplayInfo info;
     DisplayOps ops;
     fpDestroy destructor;
     void *this;
 };
+
 
 #ifdef __cplusplus
 }

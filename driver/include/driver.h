@@ -8,6 +8,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 typedef struct _DriverOps DriverOps;
 
 typedef void(*fpDriverInit)(void *, void *);
@@ -82,5 +85,7 @@ void del_SPI(SPI *);
 
 void init_SPI(SPI *, DriverOps *);
 // end define spi
-
+#ifdef __cplusplus
+}
+#endif
 #endif //PI_DISPLAY_DRIVER_H

@@ -7,6 +7,9 @@
 
 #include "display_priv.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 typedef enum {
     DISPLAY_NONE = 0,
     DISPLAY_SSD1306_BCM_I2C,
@@ -18,7 +21,9 @@ typedef enum {
 // define device factory
 Display *create_display(DisplayType);
 
-void destroy_display(Display *);
+void _destroy_display(Display *);
 // end define device factory
-
+#ifdef __cplusplus
+}
+#endif
 #endif //PI_DISPLAY_FACTORY_H

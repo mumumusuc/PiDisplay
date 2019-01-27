@@ -176,8 +176,6 @@ static void begin(Display *self) {
     };
     GPIO gpio = _self->gpio;
     gpio.ops.init(&gpio, &info);
-    info.pin = _self->pin_reset;
-    gpio.ops.init(&gpio, &info);
 }
 
 static void clear(Display *self) {
@@ -186,7 +184,7 @@ static void clear(Display *self) {
     Ssd1306 *_self = container_of(self, Ssd1306, base);
     GPIO gpio = _self->gpio;
     gpio.ops.write(&gpio, &(_self->pin_reset), GPIO_LOW);
-    delay(20);
+    delay(16);
     gpio.ops.write(&gpio, &(_self->pin_reset), GPIO_HIGH);
     self->ops.turn_on(self);
 };
@@ -221,11 +219,12 @@ static void turn_on(Display *self) {
 }
 
 static void update(Display *self, void *buffer) {
-    LOG("update");
+   // LOG("update");
     // TODO: update display with the buffer.
-    assert(buffer);
-    Ssd1306 *_self = (Ssd1306 *) self;
-    update_screen(_self, (uint8_t *) buffer);
+    if (buffer){
+        Ssd1306 *_self = (Ssd1306 *) self;
+        update_screen(_self, (uint8_t *) buffer);
+    }
 }
 
 static void turn_off(Display *self) {

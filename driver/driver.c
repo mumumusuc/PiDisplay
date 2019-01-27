@@ -6,6 +6,7 @@
 #include "common.h"
 #include "driver.h"
 
+#undef LOG_TAG
 #define LOG_TAG     "DRIVER"
 
 static void init(void *self, void *_) {

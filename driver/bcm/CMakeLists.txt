@@ -7,10 +7,10 @@ aux_source_directory(. SRC_FILES)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 find_package(bcm2835)
 
-#aux_source_directory(. SRC_FILES)
+aux_source_directory(. SRC_FILES)
 #link_libraries(bcm2835)
-#add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
-#set(DRIVER_bcm TRUE CACHE INTERNAL "Driver ${PROJECT_NAME} built.")
+add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
+set(DRIVER_bcm TRUE CACHE INTERNAL "Driver ${PROJECT_NAME} built.")
 
 if (BCM2835_FOUND)
     include_directories(${BCM2835_INCLUDE_DIR})

@@ -6,7 +6,10 @@
 #define PI_DISPLAY_BCM_H
 
 #include "driver.h"
-#define DELAY(m_sec)    do{ ;}while(0)
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 // gpio
 typedef struct _BcmGPIO {
     GPIO base;
@@ -36,5 +39,7 @@ BcmSPI *new_BcmSPI();
 
 void del_BcmSPI(BcmSPI *);
 //end spi
-
+#ifdef __cplusplus
+}
+#endif
 #endif //PI_DISPLAY_BCM_H

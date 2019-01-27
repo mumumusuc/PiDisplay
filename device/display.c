@@ -10,7 +10,7 @@
 #define LOG_TAG "DISPLAY"
 
 // default methods
-static void begin(Display *self) {
+static void _begin(Display *self) {
 #ifdef DEBUG
     ERROR("begin");
 #else
@@ -18,7 +18,7 @@ static void begin(Display *self) {
 #endif
 }
 
-static void reset(Display *self) {
+static void _reset(Display *self) {
 #ifdef DEBUG
     ERROR("reset");
 #else
@@ -26,7 +26,7 @@ static void reset(Display *self) {
 #endif
 }
 
-static void turn_on(Display *self) {
+static void _turn_on(Display *self) {
 #ifdef DEBUG
     ERROR("turn_on");
 #else
@@ -34,7 +34,7 @@ static void turn_on(Display *self) {
 #endif
 }
 
-static void clear(Display *self) {
+static void _clear(Display *self) {
 #ifdef DEBUG
     ERROR("clear");
 #else
@@ -42,7 +42,7 @@ static void clear(Display *self) {
 #endif
 }
 
-static void update(Display *self, void *buffer) {
+static void _update(Display *self, void *buffer) {
 #ifdef DEBUG
     ERROR("update");
 #else
@@ -50,7 +50,7 @@ static void update(Display *self, void *buffer) {
 #endif
 }
 
-static void turn_off(Display *self) {
+static void _turn_off(Display *self) {
 #ifdef DEBUG
     ERROR("turn_off");
 #else
@@ -59,14 +59,13 @@ static void turn_off(Display *self) {
 }
 
 
-static void end(Display *self) {
+static void _end(Display *self) {
 #ifdef DEBUG
     ERROR("end");
 #else
     METHOD_NOT_IMPLEMENTED("end");
 #endif
 }
-
 // constructor & destructor
 
 void init_Base(Display *display, void *this, fpDestroy destructor) {
@@ -104,13 +103,13 @@ Display *new_Display() {
             .vendor = "BaseDisplay",
     };
     DisplayOps ops = {
-            .begin = begin,
-            .reset = reset,
-            .turn_on = turn_on,
-            .clear = clear,
-            .update = update,
-            .turn_off = turn_off,
-            .end = end,
+            .begin = _begin,
+            .reset = _reset,
+            .turn_on = _turn_on,
+            .clear = _clear,
+            .update = _update,
+            .turn_off = _turn_off,
+            .end = _end,
     };
     init_Display(display, &ops, &info);
     init_Base(display, display, del_Display);
@@ -127,6 +126,7 @@ void del_Display(Display *display) {
 #include "ssd1306/ssd1306_priv.h"
 #include "bcm/bcm.h"
 
+
 Display *create_display(DisplayType type) {
     Display *display = NULL;
     switch (type) {
@@ -139,6 +139,7 @@ Display *create_display(DisplayType type) {
             del_GPIO(gpio);
             break;
         }
+#ifndef TEST
         case DISPLAY_SSD1306_BCM_I2C: {
             BcmGPIO *gpio = new_BcmGPIO();
             BcmI2C *i2c = new_BcmI2C();
@@ -161,6 +162,7 @@ Display *create_display(DisplayType type) {
         case DISPLAY_SSD1306_DEF_SPI4: {
             break;
         }
+#endif
         default:
             break;
     }
