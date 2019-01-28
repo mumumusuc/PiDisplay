@@ -5,13 +5,15 @@
 #ifndef PI_DISPLAY_DISPLAY_PROTECTED_H
 #define PI_DISPLAY_DISPLAY_PROTECTED_H
 
-#include "display_.h"
+#include "display.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define override(disp, impl) do{assert((disp) && (impl));(disp)->vtbl = (impl);}while(0)
+
+typedef void(*fpDspGetInfo)(Display *, DisplayInfo *);
 
 typedef void(*fpDspBegin)(Display *);
 
@@ -28,6 +30,7 @@ typedef void(*fpDspTurnOff)(Display *);
 typedef void(*fpDspEnd)(Display *);
 
 struct _Display_VTbl {
+    fpDspGetInfo get_info;
     fpDspBegin begin;
     fpDspReset reset;
     fpDspTurnOn turn_on;

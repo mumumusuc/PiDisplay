@@ -5,7 +5,7 @@
 #ifndef PI_DISPLAY_FACTORY_H
 #define PI_DISPLAY_FACTORY_H
 
-#include "display_priv.h"
+#include "display_protected.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,200 +1,222 @@
 //
-// Created by mumumusuc on 19-1-19.
+// Created by mumumusuc on 19-1-25.
 //
 
 #include <assert.h>
 #include <string.h>
+#include <display_protected.h>
+#include <gpio.h>
 #include "common.h"
+#include "display.h"
+#include "ssd1306_protected.h"
 #include "ssd1306_def.h"
-#include "ssd1306_priv.h"
 
+#undef LOG_TAG
 #define LOG_TAG "SSD1306"
 
-// private methods
-static void set_render_mode(Ssd1306 *self, uint8_t mode) {
-    self->ops.write_cmd(self, CMD_ADDR_MODE);
-    self->ops.write_cmd(self, mode);
+// default methods
+static void _begin_com(SSD1306 *self) {
+    DEFAULT_METHOD();
 }
 
+static void _end_com(SSD1306 *self) {
+    DEFAULT_METHOD();
+}
 
-static void set_range(Ssd1306 *self, uint8_t start_page, uint8_t end_page, uint8_t start_col, uint8_t end_col) {
-    self->ops.write_cmd(self, CMD_ADDR_PAGE_RANGE);
-    self->ops.write_cmd(self, start_page);
-    self->ops.write_cmd(self, end_page);
-    self->ops.write_cmd(self, CMD_ADDR_COL_RANGE);
-    self->ops.write_cmd(self, start_col);
-    self->ops.write_cmd(self, end_col);
+static void _write_data(SSD1306 *self, uint8_t data) {
+    DEFAULT_METHOD();
+}
+
+static void _write_cmd(SSD1306 *self, uint8_t cmd) {
+    DEFAULT_METHOD();
+}
+// end default methods
+
+// private
+static void set_render_mode(SSD1306 *self, uint8_t mode) {
+    eval_vtbl(self, write_cmd, CMD_ADDR_MODE);
+    eval_vtbl(self, write_cmd, mode);
+}
+
+static void set_range(SSD1306 *self, uint8_t start_page, uint8_t end_page, uint8_t start_col, uint8_t end_col) {
+    eval_vtbl(self, write_cmd, CMD_ADDR_PAGE_RANGE);
+    eval_vtbl(self, write_cmd, start_page);
+    eval_vtbl(self, write_cmd, end_page);
+    eval_vtbl(self, write_cmd, CMD_ADDR_COL_RANGE);
+    eval_vtbl(self, write_cmd, start_col);
+    eval_vtbl(self, write_cmd, end_col);
 
 }
 
-
-static void set_pos(Ssd1306 *self, uint8_t page, uint8_t col) {
-    self->ops.write_cmd(self, CMD_ADDR_PAGE_START_MASK | page);
-    self->ops.write_cmd(self, CMD_ADDR_COL_START_LOW_MASK | (col & 0x0F));
-    self->ops.write_cmd(self, CMD_ADDR_COL_START_HIGH_MASK | ((col & 0xF0) >> 4));
+static void set_pos(SSD1306 *self, uint8_t page, uint8_t col) {
+    eval_vtbl(self, write_cmd, CMD_ADDR_PAGE_START_MASK | page);
+    eval_vtbl(self, write_cmd, CMD_ADDR_COL_START_LOW_MASK | (col & 0x0F));
+    eval_vtbl(self, write_cmd, CMD_ADDR_COL_START_HIGH_MASK | ((col & 0xF0) >> 4));
 }
 
-static void set_contrast(Ssd1306 *self, uint8_t level) {
-    self->ops.write_cmd(self, CMD_DISPLAY_CONTRAST);
-    self->ops.write_cmd(self, level);
+static void set_contrast(SSD1306 *self, uint8_t level) {
+    eval_vtbl(self, write_cmd, CMD_DISPLAY_CONTRAST);
+    eval_vtbl(self, write_cmd, level);
 }
 
-static void set_voltage(Ssd1306 *self, uint8_t voltage) {
-    self->ops.write_cmd(self, CMD_POWER_VOLTAGE);
-    self->ops.write_cmd(self, voltage);
+static void set_voltage(SSD1306 *self, uint8_t voltage) {
+    eval_vtbl(self, write_cmd, CMD_POWER_VOLTAGE);
+    eval_vtbl(self, write_cmd, voltage);
 
 }
 
-static void set_ignore_ram(Ssd1306 *self, uint8_t flag) {
+static void set_ignore_ram(SSD1306 *self, uint8_t flag) {
     if (flag) {
-        self->ops.write_cmd(self, CMD_DISPLAY_ALL);
+        eval_vtbl(self, write_cmd, CMD_DISPLAY_ALL);
     } else {
-        self->ops.write_cmd(self, CMD_DISPLAY_RAM);
+        eval_vtbl(self, write_cmd, CMD_DISPLAY_RAM);
     }
 }
 
-static void set_reverse(Ssd1306 *self, uint8_t h, uint8_t v) {
+static void set_reverse(SSD1306 *self, uint8_t h, uint8_t v) {
     if (v) {
         h = h ? 0 : 1;
-        self->ops.write_cmd(self, CMD_HARD_SCAN_DIRECT_INVERSE);
+        eval_vtbl(self, write_cmd, CMD_HARD_SCAN_DIRECT_INVERSE);
     } else {
-        self->ops.write_cmd(self, CMD_HARD_SCAN_DIRECT_NORMAL);
+        eval_vtbl(self, write_cmd, CMD_HARD_SCAN_DIRECT_NORMAL);
     }
     if (h) {
-        self->ops.write_cmd(self, CMD_HARD_MAP_COL_127);
+        eval_vtbl(self, write_cmd, CMD_HARD_MAP_COL_127);
     } else {
-        self->ops.write_cmd(self, CMD_HARD_MAP_COL_0);
+        eval_vtbl(self, write_cmd, CMD_HARD_MAP_COL_0);
     }
 }
 
-static void set_mapping(Ssd1306 *self, uint8_t start_line, uint8_t offset, uint8_t rows) {
-    self->ops.write_cmd(self, CMD_HARD_START_LINE_MASK | start_line);
-    self->ops.write_cmd(self, CMD_HARD_VERTICAL_OFFSET);
-    self->ops.write_cmd(self, offset);
-    self->ops.write_cmd(self, CMD_HARD_MUX);
-    self->ops.write_cmd(self, rows - 1);
+static void set_mapping(SSD1306 *self, uint8_t start_line, uint8_t offset, uint8_t rows) {
+    eval_vtbl(self, write_cmd, CMD_HARD_START_LINE_MASK | start_line);
+    eval_vtbl(self, write_cmd, CMD_HARD_VERTICAL_OFFSET);
+    eval_vtbl(self, write_cmd, offset);
+    eval_vtbl(self, write_cmd, CMD_HARD_MUX);
+    eval_vtbl(self, write_cmd, rows - 1);
 }
 
-static void set_point_invert(Ssd1306 *self, uint8_t flag) {
+static void set_point_invert(SSD1306 *self, uint8_t flag) {
     if (flag) {
-        self->ops.write_cmd(self, CMD_DISPLAY_INVERSE);
+        eval_vtbl(self, write_cmd, CMD_DISPLAY_INVERSE);
     } else {
-        self->ops.write_cmd(self, CMD_DISPLAY_NORMAL);
+        eval_vtbl(self, write_cmd, CMD_DISPLAY_NORMAL);
     }
 }
 
-static void set_frequency(Ssd1306 *self, uint8_t rate, uint8_t div) {
-    self->ops.write_cmd(self, CMD_TIME_CLOCK);
-    self->ops.write_cmd(self, ((div - 1) & 0x0F) | ((rate & 0x0F) << 4));
+static void set_frequency(SSD1306 *self, uint8_t rate, uint8_t div) {
+    eval_vtbl(self, write_cmd, CMD_TIME_CLOCK);
+    eval_vtbl(self, write_cmd, ((div - 1) & 0x0F) | ((rate & 0x0F) << 4));
 }
 
-static void set_period_pre_charge(Ssd1306 *self, uint8_t phase1, uint8_t phase2) {
-    self->ops.write_cmd(self, CMD_POWER_PRECHARGE);
-    self->ops.write_cmd(self, ((phase2 & 0x0F) << 4) | (phase1 & 0x0F));
+static void set_period_pre_charge(SSD1306 *self, uint8_t phase1, uint8_t phase2) {
+    eval_vtbl(self, write_cmd, CMD_POWER_PRECHARGE);
+    eval_vtbl(self, write_cmd, ((phase2 & 0x0F) << 4) | (phase1 & 0x0F));
 }
 
-static void set_graphic_zoom(Ssd1306 *self, uint8_t flag) {
-    self->ops.write_cmd(self, CMD_GRAPHIC_ZOOM);
+static void set_graphic_zoom(SSD1306 *self, uint8_t flag) {
+    eval_vtbl(self, write_cmd, CMD_GRAPHIC_ZOOM);
     flag = flag ? ZOOM_ON : ZOOM_OFF;
-    self->ops.write_cmd(self, flag);
+    eval_vtbl(self, write_cmd, flag);
 }
 
-static void set_graphic_fade(Ssd1306 *self, uint8_t mode, uint8_t frame) {
-    self->ops.write_cmd(self, CMD_GRAPHIC_FADE);
-    self->ops.write_cmd(self, mode | frame);
-}
-
-static void
-set_graphic_scroll_H(Ssd1306 *self, uint8_t direct, uint8_t start_page, uint8_t end_page, uint8_t frame) {
-    self->ops.write_cmd(self, direct);
-    self->ops.write_cmd(self, 0x00);
-    self->ops.write_cmd(self, start_page);
-    self->ops.write_cmd(self, frame);
-    self->ops.write_cmd(self, end_page);
-    self->ops.write_cmd(self, 0x00);
-    self->ops.write_cmd(self, 0xFF);
+static void set_graphic_fade(SSD1306 *self, uint8_t mode, uint8_t frame) {
+    eval_vtbl(self, write_cmd, CMD_GRAPHIC_FADE);
+    eval_vtbl(self, write_cmd, mode | frame);
 }
 
 static void
-set_graphic_scroll_HV(Ssd1306 *self, uint8_t direct, uint8_t start_page, uint8_t end_page, uint8_t frame,
+set_graphic_scroll_H(SSD1306 *self, uint8_t direct, uint8_t start_page, uint8_t end_page, uint8_t frame) {
+    eval_vtbl(self, write_cmd, direct);
+    eval_vtbl(self, write_cmd, 0x00);
+    eval_vtbl(self, write_cmd, start_page);
+    eval_vtbl(self, write_cmd, frame);
+    eval_vtbl(self, write_cmd, end_page);
+    eval_vtbl(self, write_cmd, 0x00);
+    eval_vtbl(self, write_cmd, 0xFF);
+}
+
+static void
+set_graphic_scroll_HV(SSD1306 *self, uint8_t direct, uint8_t start_page, uint8_t end_page, uint8_t frame,
                       uint8_t offset) {
-    self->ops.write_cmd(self, direct);
-    self->ops.write_cmd(self, 0x00);
-    self->ops.write_cmd(self, start_page);
-    self->ops.write_cmd(self, frame);
-    self->ops.write_cmd(self, end_page);
-    self->ops.write_cmd(self, offset);
+    eval_vtbl(self, write_cmd, direct);
+    eval_vtbl(self, write_cmd, 0x00);
+    eval_vtbl(self, write_cmd, start_page);
+    eval_vtbl(self, write_cmd, frame);
+    eval_vtbl(self, write_cmd, end_page);
+    eval_vtbl(self, write_cmd, offset);
 }
 
-static void set_graphic_scroll_range_V(Ssd1306 *self, uint8_t fix_rows, uint8_t scroll_rows) {
-    self->ops.write_cmd(self, CMD_SCROLL_DOWN_AREA);
-    self->ops.write_cmd(self, fix_rows);
-    self->ops.write_cmd(self, scroll_rows);
+static void set_graphic_scroll_range_V(SSD1306 *self, uint8_t fix_rows, uint8_t scroll_rows) {
+    eval_vtbl(self, write_cmd, CMD_SCROLL_DOWN_AREA);
+    eval_vtbl(self, write_cmd, fix_rows);
+    eval_vtbl(self, write_cmd, scroll_rows);
 }
 
-static void set_graphic_scroll_enable(Ssd1306 *self) {
-    self->ops.write_cmd(self, CMD_SCROLL_ENABLE);
+static void set_graphic_scroll_enable(SSD1306 *self) {
+    eval_vtbl(self, write_cmd, CMD_SCROLL_ENABLE);
 }
 
-static void set_graphic_scroll_disable(Ssd1306 *self) {
-    self->ops.write_cmd(self, CMD_SCROLL_DISABLE);
+static void set_graphic_scroll_disable(SSD1306 *self) {
+    eval_vtbl(self, write_cmd, CMD_SCROLL_DISABLE);
 }
 
-static void set_pin_config(Ssd1306 *self, uint8_t alternative, uint8_t remap) {
+static void set_pin_config(SSD1306 *self, uint8_t alternative, uint8_t remap) {
     uint8_t cmd = 0x02;
     cmd |= alternative ? 0x10 : 0x00;
     cmd |= remap ? 0x20 : 0x00;
-    self->ops.write_cmd(self, CMD_HARD_COM_CONFIG);
-    self->ops.write_cmd(self, cmd);
+    eval_vtbl(self, write_cmd, CMD_HARD_COM_CONFIG);
+    eval_vtbl(self, write_cmd, cmd);
 }
 
 static void
-update_screen_range(Ssd1306 *self, uint8_t *data, uint8_t start_page, uint8_t end_page, uint8_t start_col,
+update_screen_range(SSD1306 *self, uint8_t *data, uint8_t start_page, uint8_t end_page, uint8_t start_col,
                     uint8_t end_col) {
     uint8_t r, c;
     set_render_mode(self, MODE_HORIZONTAL);
     set_range(self, start_page, end_page, start_col, end_col);
     for (r = start_page; r <= end_page; r++)
         for (c = start_col; c <= end_col; c++) {
-            self->ops.write_data(self, *(data + SCREEN_COLUMNS * r + c));
+            eval_vtbl(self, write_data, *(data + SCREEN_COLUMNS * r + c));
         }
 }
 
-static void update_screen(Ssd1306 *self, uint8_t *data) {
+static void update_screen(SSD1306 *self, uint8_t *data) {
     update_screen_range(self, data, 0, 7, 0, 127);
 }
+// end private
 
-// implement base methods
-static void begin(Display *self) {
-    LOG("begin");
+// override
+static DisplayInfo _info = {
+        .width = SCREEN_COLUMNS,
+        .height = SCREEN_ROWS,
+        .pixel_format = 1,
+        .vendor="SSD1306_128_64",
+};
+
+static void _get_info(Display *self, DisplayInfo *info) {
+    if (info) {
+        memcpy(info, &_info, sizeof(DisplayInfo));
+    }
+}
+
+static void _begin(Display *self) {
+    LOG("%s", __func__);
     // TODO: init gpio & com.
-    Ssd1306 *_self = container_of(self, Ssd1306, base);
-    _self->ops.init_com(_self);
-    GPIOInfo info = {
+    SSD1306 *_self = subclass(self, SSD1306);
+    eval_vtbl(_self, begin_com);
+    GpioInfo info = {
             .pin = _self->pin_reset,
             .mode = GPIO_MODE_OUTPUT,
     };
-    GPIO gpio = _self->gpio;
-    gpio.ops.init(&gpio, &info);
+    gpio_init(_self->gpio, &info);
 }
 
-static void clear(Display *self) {
-    LOG("clear");
-    // TODO: clear display.
-    Ssd1306 *_self = container_of(self, Ssd1306, base);
-    GPIO gpio = _self->gpio;
-    gpio.ops.write(&gpio, &(_self->pin_reset), GPIO_LOW);
-    delay(16);
-    gpio.ops.write(&gpio, &(_self->pin_reset), GPIO_HIGH);
-    self->ops.turn_on(self);
-};
-
-static void reset(Display *self) {
-    LOG("reset");
+static void _reset(Display *self) {
+    LOG("%s", __func__);
     // TODO: init/reset display.
-    Ssd1306 *_self = container_of(self, Ssd1306, base);
-    self->ops.clear(self);
-    self->ops.turn_off(self);
+    SSD1306 *_self = subclass(self, SSD1306);
+    display_clear(self);
+    display_turn_off(self);
     set_reverse(_self, SSD1306_FALSE, SSD1306_TRUE);
     set_mapping(_self, 0, 0, 64);
     set_contrast(_self, 0x7F);
@@ -209,121 +231,90 @@ static void reset(Display *self) {
     set_graphic_zoom(_self, SSD1306_FALSE);
 }
 
-static void turn_on(Display *self) {
-    LOG("turn_on");
+static void _turn_on(Display *self) {
+    LOG("%s", __func__);
     // TODO: turn on display.
-    Ssd1306 *_self = (Ssd1306 *) self;
-    _self->ops.write_cmd(_self, CMD_POWER_CHARGE_PUMP);
-    _self->ops.write_cmd(_self, CHARGE_PUMP_ON);
-    _self->ops.write_cmd(_self, CMD_DISPLAY_ON);
+    SSD1306 *_self = subclass(self, SSD1306);
+    eval_vtbl(_self, write_cmd, CMD_POWER_CHARGE_PUMP);
+    eval_vtbl(_self, write_cmd, CHARGE_PUMP_ON);
+    eval_vtbl(_self, write_cmd, CMD_DISPLAY_ON);
 }
 
-static void update(Display *self, void *buffer) {
-   // LOG("update");
+static void _clear(Display *self) {
+    LOG("%s", __func__);
+    // TODO: clear display.
+    SSD1306 *_self = subclass(self, SSD1306);
+    gpio_write(_self->gpio, &(_self->pin_reset), GPIO_LOW);
+    delay(10);
+    gpio_write(_self->gpio, &(_self->pin_reset), GPIO_HIGH);
+    eval_vtbl(self, turn_on);
+}
+
+static void _update(Display *self, const void *buffer) {
     // TODO: update display with the buffer.
-    if (buffer){
-        Ssd1306 *_self = (Ssd1306 *) self;
+    if (buffer) {
+        SSD1306 *_self = subclass(self, SSD1306);
         update_screen(_self, (uint8_t *) buffer);
     }
 }
 
-static void turn_off(Display *self) {
-    LOG("turn_off");
+static void _turn_off(Display *self) {
+    LOG("%s", __func__);
     // TODO: turn off display.
-    Ssd1306 *_self = (Ssd1306 *) self;
-    _self->ops.write_cmd(_self, CMD_POWER_CHARGE_PUMP);
-    _self->ops.write_cmd(_self, CHARGE_PUMP_OFF);
-    _self->ops.write_cmd(_self, CMD_DISPLAY_OFF);
+    SSD1306 *_self = subclass(self, SSD1306);
+    eval_vtbl(_self, write_cmd, CMD_POWER_CHARGE_PUMP);
+    eval_vtbl(_self, write_cmd, CHARGE_PUMP_OFF);
+    eval_vtbl(_self, write_cmd, CMD_DISPLAY_OFF);
 }
 
-static void end(Display *self) {
-    LOG("end");
+
+static void _end(Display *self) {
+    LOG("%s", __func__);
     // TODO: uninit gpio & com.
-    Ssd1306 *_self = (Ssd1306 *) self;
-    _self->ops.uninit_com(_self);
+    SSD1306 *_self = subclass(self, SSD1306);
+    eval_vtbl(_self, end_com);
 }
+// end override
 
-// protected methods
-static void init_com(Ssd1306 *self) {
-#ifdef DEBUG
-    ERROR("init_com");
-#else
-    METHOD_NOT_IMPLEMENTED("init_com");
-#endif
-}
+static DisplayVTbl _vtbl = {
+        .get_info = _get_info,
+        .begin = _begin,
+        .reset = _reset,
+        .turn_on = _turn_on,
+        .clear = _clear,
+        .update = _update,
+        .turn_off = _turn_off,
+        .end = _end,
+};
 
-static void uninit_com(Ssd1306 *self) {
-#ifdef DEBUG
-    ERROR("uninit_com");
-#else
-    METHOD_NOT_IMPLEMENTED("uninit_com");
-#endif
-}
+static SSDVTbl _ssd_vtbl = {
+        .begin_com = _begin_com,
+        .end_com = _end_com,
+        .write_cmd = _write_cmd,
+        .write_data = _write_data,
+};
 
-static void write_data(Ssd1306 *self, uint8_t data) {
-#ifdef DEBUG
-    ERROR("write_data");
-#else
-    METHOD_NOT_IMPLEMENTED("write_data");
-#endif
-}
-
-static void write_cmd(Ssd1306 *self, uint8_t cmd) {
-#ifdef DEBUG
-    ERROR("write_cmd");
-#else
-    METHOD_NOT_IMPLEMENTED("write_cmd");
-#endif
-}
-
-// constructor & destructor
-Ssd1306 *new_Ssd1306(GPIO *gpio, uint8_t rst) {
+inline SSD1306 *new_ssd1306(Gpio *gpio, uint8_t reset) {
+    LOG("%s", __func__);
     assert(gpio);
-    Ssd1306 *ssd = (Ssd1306 *) malloc(sizeof(Ssd1306));
+    SSD1306 *ssd = (SSD1306 *) malloc(sizeof(SSD1306));
     assert(ssd);
-    SsdOps ssd_ops = {
-            .init_com = init_com,
-            .uninit_com = uninit_com,
-            .write_cmd = write_cmd,
-            .write_data = write_data,
-    };
-    init_Ssd1306(ssd, gpio, &ssd_ops, rst);
+    //memcpy(ssd->gpio, gpio, sizeof(Gpio));
+    ssd->gpio = gpio;
+    ssd->pin_reset = reset;
+    override(ssd, &_ssd_vtbl);
+    Display *super = new_display();
+    override(super, &_vtbl);
+    link2(ssd, super, "SSD1306", del_ssd1306);
     return ssd;
 }
 
-void init_Ssd1306(Ssd1306 *display, GPIO *gpio, SsdOps *ops, uint8_t rst) {
-    assert(display && gpio && ops);
-    display->pin_reset = rst;
-    // init gpio
-    init_GPIO(&(display->gpio), gpio);
-    // init base members
-    DisplayInfo dsp_info = {
-            .width = SCREEN_COLUMNS,
-            .height = SCREEN_ROWS,
-            .pixel_format = 1,
-            .vendor = "SSD1306_128_64",
-    };
-    DisplayOps dsp_ops = {
-            .begin = begin,
-            .reset = reset,
-            .turn_on = turn_on,
-            .clear = clear,
-            .update = update,
-            .turn_off = turn_off,
-            .end = end,
-    };
-    init_Display(&(display->base), &dsp_ops, &dsp_info);
-    init_Base(&(display->base), display, del_Ssd1306);
-    // init private members
-    display->ops.init_com = ops->init_com;
-    display->ops.uninit_com = ops->uninit_com;
-    display->ops.write_cmd = ops->write_cmd;
-    display->ops.write_data = ops->write_data;
-}
-
-void del_Ssd1306(Ssd1306 *self) {
+inline void del_ssd1306(void *self) {
+    LOG("%s", __func__);
     if (self) {
-        // del_Display(&(self->base));
+        SSD1306 *_self = (SSD1306 *) self;
+        object_delete(_self->obj);
+        delete(_self->gpio->obj);
     }
     free(self);
     self = NULL;

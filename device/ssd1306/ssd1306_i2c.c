@@ -6,67 +6,72 @@
 #include <assert.h>
 #include "common.h"
 #include "ssd1306_def.h"
-#include "ssd1306_priv.h"
+#include "ssd1306_protected.h"
 
+#undef  LOG_TAG
 #define LOG_TAG     "SSD1306_I2C"
 #define I2C_RST     17
 
-static void init_com(Ssd1306 *self) {
-    LOG("init_com");
-    Ssd1306_I2C *_self = container_of(self, Ssd1306_I2C, base);
-    I2CInfo info = {
+static uint8_t data_tmp[2] = {0x40, 0x00};
+static uint8_t cmd_tmp[2] = {0x00, 0x00};
+
+static void _begin_com(SSD1306 *self) {
+    LOG("%s", __func__);
+    SSD1306_I2C *_self = subclass(self, SSD1306_I2C);
+    I2cInfo info = {
             .address = SSD1306_I2C_ADDR,
             .baudrate = SSD1306_I2C_RATE,
     };
-    I2C i2c = _self->i2c;
-    i2c.ops.init(&i2c, &info);
-    LOG("init_com end");
+    i2c_begin(_self->i2c);
+    i2c_init(_self->i2c, &info);
 }
 
-static void uninit_com(Ssd1306 *self) {
-    LOG("uninit_com");
-    Ssd1306_I2C *_self = container_of(self, Ssd1306_I2C, base);
-    I2C i2c = _self->i2c;
-    i2c.ops.uninit(&i2c);
+static void _end_com(SSD1306 *self) {
+    LOG("%s", __func__);
+    SSD1306_I2C *_self = subclass(self, SSD1306_I2C);
+    i2c_end(_self->i2c);
 }
 
-static void write_data(Ssd1306 *self, uint8_t data) {
-    //LOG("write_data");
-    Ssd1306_I2C *_self = container_of(self, Ssd1306_I2C, base);
-    I2C i2c = _self->i2c;
-    uint8_t temp[2] = {0};
-    temp[0] = 0x40;
-    temp[1] = data;
-    i2c.ops.write(&i2c, temp, 2);
+static void _write_data(SSD1306 *self, uint8_t data) {
+    //LOG("%s", __func__);
+    SSD1306_I2C *_self = subclass(self, SSD1306_I2C);
+    data_tmp[1] = data;
+    i2c_write(_self->i2c, data_tmp, 2);
 }
 
-static void write_cmd(Ssd1306 *self, uint8_t cmd) {
-    //LOG("write_cmd");
-    Ssd1306_I2C *_self = container_of(self, Ssd1306_I2C, base);
-    I2C i2c = _self->i2c;
-    uint8_t data[2] = {0};
-    data[0] = 0x00;
-    data[1] = cmd;
-    i2c.ops.write(&i2c, data, 2);
+static void _write_cmd(SSD1306 *self, uint8_t cmd) {
+    //LOG("%s", __func__);
+    SSD1306_I2C *_self = subclass(self, SSD1306_I2C);
+    cmd_tmp[1] = cmd;
+    i2c_write(_self->i2c, cmd_tmp, 2);
 }
 
-Ssd1306_I2C *new_Ssd1306_I2C(GPIO *gpio, I2C *i2c) {
+static SSDVTbl _vtbl = {
+        .begin_com = _begin_com,
+        .end_com = _end_com,
+        .write_cmd = _write_cmd,
+        .write_data = _write_data,
+};
+
+SSD1306_I2C *new_ssd1306_i2c(Gpio *gpio, I2c *i2c) {
+    LOG("%s", __func__);
     assert(gpio && i2c);
-    Ssd1306_I2C *display = (Ssd1306_I2C *) malloc(sizeof(Ssd1306_I2C));
+    SSD1306_I2C *display = (SSD1306_I2C *) malloc(sizeof(SSD1306_I2C));
     assert(display);
-    SsdOps ssd_ops = {
-            .init_com = init_com,
-            .uninit_com = uninit_com,
-            .write_cmd = write_cmd,
-            .write_data = write_data,
-    };
-    init_Ssd1306(&(display->base), gpio, &ssd_ops, I2C_RST);
-    init_Base(&(display->base.base), display, del_Ssd1306_I2C);
-    init_I2C(&(display->i2c), &(i2c->ops));
+    display->i2c = i2c;
+    SSD1306 *super = new_ssd1306(gpio, I2C_RST);
+    super->vtbl = &_vtbl;
+    link2(display, super, "SSD1306_I2C", del_ssd1306_i2c);
     return display;
 }
 
-void del_Ssd1306_I2C(Ssd1306_I2C *self) {
+void del_ssd1306_i2c(void *self) {
+    LOG("%s", __func__);
+    if (self) {
+        SSD1306_I2C *_self = (SSD1306_I2C *) self;
+        object_delete(_self->obj);
+        delete(_self->i2c->obj);
+    }
     free(self);
     self = NULL;
 }

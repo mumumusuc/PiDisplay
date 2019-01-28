@@ -5,8 +5,9 @@
 #include <assert.h>
 #include "common.h"
 #include "ssd1306_def.h"
-#include "ssd1306_priv.h"
+#include "ssd1306_protected.h"
 
+#undef  LOG_TAG
 #define LOG_TAG         "SSD1306_SPI4"
 #define SPI_CS_0        0
 #define SPI_CS_1        1
@@ -14,64 +15,69 @@
 #define SPI_RST         27
 #define SPI_MAX_SPEED   8000000
 
-static void init_com(Ssd1306 *self) {
-    LOG("init_com");
-    Ssd1306_SPI4 *_self = container_of(self, Ssd1306_I2C, base);
-    SPIInfo info = {
+static void _begin_com(SSD1306 *self) {
+    LOG("%s", __func__);
+    SSD1306_SPI4 *_self = subclass(self, SSD1306_SPI4);
+    SpiInfo info = {
             .cs = SPI_CS_0,
             .speed = SPI_MAX_SPEED,
     };
-    SPI spi = _self->spi4;
-    spi.ops.init(&spi, &info);
-    GPIOInfo gpio_info = {
+    spi_begin(_self->spi);
+    spi_init(_self->spi, &info);
+    GpioInfo gpio_info = {
             .pin = SPI_DC,
             .mode = GPIO_MODE_OUTPUT,
     };
-    self->gpio.ops.init(&(self->gpio), &gpio_info);
+    gpio_init(self->gpio, &gpio_info);
 }
 
-static void uninit_com(Ssd1306 *self) {
-    LOG("uninit_com");
-    Ssd1306_SPI4 *_self = container_of(self, Ssd1306_I2C, base);
-    SPI spi = _self->spi4;
-    spi.ops.uninit(&spi);
+static void _end_com(SSD1306 *self) {
+    LOG("%s", __func__);
+    SSD1306_SPI4 *_self = subclass(self, SSD1306_SPI4);
+    spi_end(_self->spi);
 }
 
-static void write_data(Ssd1306 *self, uint8_t data) {
+static void _write_data(SSD1306 *self, uint8_t data) {
     //LOG("spi : write_data");
-    Ssd1306_SPI4 *_self = container_of(self, Ssd1306_SPI4, base);
-    SPI spi = _self->spi4;
-    uint8_t pin = SPI_DC;
-    self->gpio.ops.write(&(self->gpio), &pin, GPIO_HIGH);
-    spi.ops.write(&spi, &data, 1);
+    SSD1306_SPI4 *_self = subclass(self, SSD1306_SPI4);
+    gpio_write(self->gpio, &(_self->pin_dc), GPIO_HIGH);
+    spi_write(_self->spi, &data, 1);
 }
 
-static void write_cmd(Ssd1306 *self, uint8_t cmd) {
+static void _write_cmd(SSD1306 *self, uint8_t cmd) {
     //LOG("spi : write_cmd");
-    Ssd1306_SPI4 *_self = container_of(self, Ssd1306_SPI4, base);
-    SPI spi = _self->spi4;
-    uint8_t pin = SPI_DC;
-    self->gpio.ops.write(&(self->gpio), &pin, GPIO_LOW);
-    spi.ops.write(&spi, &cmd, 1);
+    SSD1306_SPI4 *_self = subclass(self, SSD1306_SPI4);
+    gpio_write(self->gpio, &(_self->pin_dc), GPIO_LOW);
+    spi_write(_self->spi, &cmd, 1);
 }
 
-Ssd1306_SPI4 *new_Ssd1306_SPI4(GPIO *gpio, SPI *spi4) {
-    assert(gpio && spi4);
-    Ssd1306_SPI4 *display = (Ssd1306_SPI4 *) malloc(sizeof(Ssd1306_SPI4));
+static SSDVTbl _vtbl = {
+        .begin_com = _begin_com,
+        .end_com = _end_com,
+        .write_cmd = _write_cmd,
+        .write_data = _write_data,
+};
+
+SSD1306_SPI4 *new_ssd1306_spi4(Gpio *gpio, Spi *spi) {
+    LOG("%s", __func__);
+    assert(gpio && spi);
+    SSD1306_SPI4 *display = (SSD1306_SPI4 *) malloc(sizeof(SSD1306_SPI4));
     assert(display);
-    SsdOps ssd_ops = {
-            .init_com = init_com,
-            .uninit_com = uninit_com,
-            .write_cmd = write_cmd,
-            .write_data = write_data,
-    };
-    init_Ssd1306(&(display->base), gpio, &ssd_ops, SPI_RST);
-    init_Base(&(display->base.base), display, del_Ssd1306_SPI4);
-    init_SPI(&(display->spi4), &(spi4->ops));
+    display->spi = spi;
+    display->pin_dc = SPI_DC;
+    SSD1306 *super = new_ssd1306(gpio, SPI_RST);
+    super->vtbl = &_vtbl;
+    link2(display, super, "SSD1306_SPI4", del_ssd1306_spi4);
     return display;
 }
 
-void del_Ssd1306_SPI4(Ssd1306_SPI4 *self) {
+void del_ssd1306_spi4(void *self) {
+    LOG("%s", __func__);
+    if (self) {
+        SSD1306_SPI4 *_self = (SSD1306_SPI4 *) self;
+        object_delete(_self->obj);
+        delete(_self->spi->obj);
+    }
     free(self);
     self = NULL;
 }

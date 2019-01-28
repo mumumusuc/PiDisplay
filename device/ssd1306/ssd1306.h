@@ -1,70 +1,58 @@
 //
-// Created by mumumusuc on 19-1-19.
+// Created by mumumusuc on 19-1-25.
 //
 
 #ifndef PI_DISPLAY_SSD1306_H
 #define PI_DISPLAY_SSD1306_H
 
 #include "display.h"
-#include "driver.h"
+#include "driver_.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct _Ssd1306 Ssd1306;
-
-typedef struct _Ssd1306Ops SsdOps;
-
-typedef void(*fpSsdInitCom)(Ssd1306 *);
-
-typedef void(*fpSsdUninitCom)(Ssd1306 *);
-
-typedef void(*fpSsdWriteData)(Ssd1306 *, uint8_t);
-
-typedef void(*fpSsdWriteCmd)(Ssd1306 *, uint8_t);
+typedef struct _SSD1306 SSD1306;
+typedef struct _SSDVTbl SSDVTbl;
 
 // define ssd1306
-struct _Ssd1306Ops {
-    fpSsdInitCom init_com;
-    fpSsdUninitCom uninit_com;
-    fpSsdWriteCmd write_cmd;
-    fpSsdWriteData write_data;
+struct _SSD1306 {
+    SSDVTbl *vtbl;
+    Gpio *gpio;
+    uint8_t pin_reset;
+    Object *obj;
 };
 
-struct _Ssd1306 {
-    Display base;
-    GPIO gpio;
-    SsdOps ops;
-    uint8_t pin_reset;
-};
+SSD1306 *new_ssd1306(Gpio *, uint8_t);
+
+void del_ssd1306(void *);
 // end define ssd1306
 
 // define ssd1306_i2c
-typedef struct _Ssd1306_I2C {
-    Ssd1306 base;
-    I2C i2c;
-} Ssd1306_I2C;
+typedef struct _SSD_1306_I2C {
+    Object *obj;
+    I2c *i2c;
+} SSD1306_I2C;
+
+SSD1306_I2C *new_ssd1306_i2c(Gpio *, I2c *);
+
+void del_ssd1306_i2c(void *);
 // end define ssd1306_i2c
 
 // define ssd1306_spi4
-typedef struct _Ssd1306_SPI4 {
-    Ssd1306 base;
-    SPI spi4;
-} Ssd1306_SPI4;
+typedef struct _SSD1306_SPI4 {
+    Object *obj;
+    Spi *spi;
+    uint8_t pin_dc;
+} SSD1306_SPI4;
+
+SSD1306_SPI4 *new_ssd1306_spi4(Gpio *, Spi *);
+
+void del_ssd1306_spi4(void *);
 // end define ssd1306_spi4
-
-// define constructor & destructor
-Ssd1306_I2C *new_Ssd1306_I2C(GPIO *, I2C *);
-
-void del_Ssd1306_I2C(Ssd1306_I2C *);
-
-Ssd1306_SPI4 *new_Ssd1306_SPI4(GPIO *, SPI *);
-
-void del_Ssd1306_SPI4(Ssd1306_SPI4 *);
-// end define constructor & destructor
 
 #ifdef __cplusplus
 }
 #endif
+
 #endif //PI_DISPLAY_SSD1306_H

@@ -1,178 +1,113 @@
 //
-// Created by mumumusuc on 19-1-19.
+// Created by mumumusuc on 19-1-25.
 //
 
 #include <assert.h>
 #include <string.h>
 #include "common.h"
-#include "display_priv.h"
+#include "display_protected.h"
 
+#undef LOG_TAG
 #define LOG_TAG "DISPLAY"
 
 // default methods
+static DisplayInfo _info = {
+        .width = 0,
+        .height = 0,
+        .pixel_format = 0,
+        .vendor="VirtualDisplay",
+};
+
+static void _get_info(Display *self, DisplayInfo *info) {
+    if (info) {
+        memcpy(info, &_info, sizeof(DisplayInfo));
+    }
+}
+
 static void _begin(Display *self) {
-#ifdef DEBUG
-    ERROR("begin");
-#else
-    METHOD_NOT_IMPLEMENTED("begin");
-#endif
+    DEFAULT_METHOD();
 }
 
 static void _reset(Display *self) {
-#ifdef DEBUG
-    ERROR("reset");
-#else
-    METHOD_NOT_IMPLEMENTED("reset");
-#endif
+    DEFAULT_METHOD();
 }
 
 static void _turn_on(Display *self) {
-#ifdef DEBUG
-    ERROR("turn_on");
-#else
-    METHOD_NOT_IMPLEMENTED("turn_on");
-#endif
+    DEFAULT_METHOD();
 }
 
 static void _clear(Display *self) {
-#ifdef DEBUG
-    ERROR("clear");
-#else
-    METHOD_NOT_IMPLEMENTED("clear");
-#endif
+    DEFAULT_METHOD();
 }
 
-static void _update(Display *self, void *buffer) {
-#ifdef DEBUG
-    ERROR("update");
-#else
-    METHOD_NOT_IMPLEMENTED("update");
-#endif
+static void _update(Display *self, const void *buffer) {
+    DEFAULT_METHOD();
 }
 
 static void _turn_off(Display *self) {
-#ifdef DEBUG
-    ERROR("turn_off");
-#else
-    METHOD_NOT_IMPLEMENTED("turn_off");
-#endif
+    DEFAULT_METHOD();
 }
-
 
 static void _end(Display *self) {
-#ifdef DEBUG
-    ERROR("end");
-#else
-    METHOD_NOT_IMPLEMENTED("end");
-#endif
+    DEFAULT_METHOD();
 }
-// constructor & destructor
+// end default methods
 
-void init_Base(Display *display, void *this, fpDestroy destructor) {
-    assert(this && destructor);
-    display->this = this;
-    display->destructor = destructor;
-}
+static DisplayVTbl _vtbl = {
+        .get_info = _get_info,
+        .begin = _begin,
+        .reset = _reset,
+        .turn_on = _turn_on,
+        .clear = _clear,
+        .update = _update,
+        .turn_off = _turn_off,
+        .end = _end,
+};
 
-void init_Display(Display *display, DisplayOps *ops, DisplayInfo *info) {
-    assert(display && ops && info);
-    // init struct DisplayInfo
-    strcpy(display->info.vendor, info->vendor);
-    display->info.width = info->width;
-    display->info.height = info->height;
-    display->info.pixel_format = info->pixel_format;
-    // init struct DisplayOps
-    DisplayOps *ptrOps = &(display->ops);
-    ptrOps->begin = ops->begin;
-    ptrOps->reset = ops->reset;
-    ptrOps->turn_on = ops->turn_on;
-    ptrOps->clear = ops->clear;
-    ptrOps->update = ops->update;
-    ptrOps->turn_off = ops->turn_off;
-    ptrOps->end = ops->end;
-    ptrOps = NULL;
-}
-
-Display *new_Display() {
+inline Display *new_display(void) {
     Display *display = (Display *) malloc(sizeof(Display));
     assert(display);
-    DisplayInfo info = {
-            .width = 0,
-            .height = 0,
-            .pixel_format = 0,
-            .vendor = "BaseDisplay",
-    };
-    DisplayOps ops = {
-            .begin = _begin,
-            .reset = _reset,
-            .turn_on = _turn_on,
-            .clear = _clear,
-            .update = _update,
-            .turn_off = _turn_off,
-            .end = _end,
-    };
-    init_Display(display, &ops, &info);
-    init_Base(display, display, del_Display);
+    object_link(&(display->obj), NULL, display, (void *) del_display, "DISPLAY");
+    override(display, &_vtbl);
     return display;
 }
 
-void del_Display(Display *display) {
-    free(display);
-    display = NULL;
+inline void del_display(Display *dsp) {
+    if (dsp) {
+        object_delete(dsp->obj);
+    }
+    free(dsp);
+    dsp = NULL;
 }
 
-// display factory
-#include "factory.h"
-#include "ssd1306/ssd1306_priv.h"
-#include "bcm/bcm.h"
-
-
-Display *create_display(DisplayType type) {
-    Display *display = NULL;
-    switch (type) {
-        /* Notice:  This case will create a virtual driver from simulating the full process.
-                    Only for Valgrind-mem-check.
-         */
-        case DISPLAY_NONE: {
-            GPIO *gpio = new_GPIO();
-            display = &(new_Ssd1306(gpio, -1)->base);
-            del_GPIO(gpio);
-            break;
-        }
-#ifndef TEST
-        case DISPLAY_SSD1306_BCM_I2C: {
-            BcmGPIO *gpio = new_BcmGPIO();
-            BcmI2C *i2c = new_BcmI2C();
-            display = &(new_Ssd1306_I2C(&(gpio->base), &(i2c->base))->base.base);
-            del_BcmGPIO(gpio);
-            del_BcmI2C(i2c);
-            break;
-        }
-        case DISPLAY_SSD1306_BCM_SPI4: {
-            BcmGPIO *gpio = new_BcmGPIO();
-            BcmSPI *spi = new_BcmSPI();
-            display = &(new_Ssd1306_SPI4(&(gpio->base), &(spi->base))->base.base);
-            del_BcmGPIO(gpio);
-            del_BcmSPI(spi);
-            break;
-        }
-        case DISPLAY_SSD1306_DEF_I2C: {
-            break;
-        }
-        case DISPLAY_SSD1306_DEF_SPI4: {
-            break;
-        }
-#endif
-        default:
-            break;
-    }
-    return display;
+inline void display_get_info(Display *dsp, DisplayInfo *info) {
+    eval_vtbl(dsp, get_info, info);
 }
 
-void destroy_display(Display *display) {
-    if (display) {
-        fpDestroy destructor = display->destructor;
-        void *this = display->this;
-        destructor(this);
-    }
+inline void display_begin(Display *dsp) {
+    eval_vtbl(dsp, begin);
+}
+
+inline void display_reset(Display *dsp) {
+    eval_vtbl(dsp, reset);
+}
+
+inline void display_turn_on(Display *dsp) {
+    eval_vtbl(dsp, turn_on);
+}
+
+inline void display_clear(Display *dsp) {
+    eval_vtbl(dsp, turn_on);
+}
+
+inline void display_update(Display *dsp, const void *buffer) {
+    eval_vtbl(dsp, update, buffer);
+}
+
+inline void display_turn_off(Display *dsp) {
+    eval_vtbl(dsp, turn_off);
+}
+
+inline void display_end(Display *dsp) {
+    eval_vtbl(dsp, end);
 }

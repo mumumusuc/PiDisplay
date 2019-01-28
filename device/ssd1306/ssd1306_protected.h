@@ -5,7 +5,7 @@
 #ifndef PI_DISPLAY_SSD1306_PROTECTED_H
 #define PI_DISPLAY_SSD1306_PROTECTED_H
 
-#include "ssd1306_.h"
+#include "ssd1306.h"
 
 #ifdef __cplusplus
 extern "C" {

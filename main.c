@@ -47,13 +47,21 @@ static void convert2(const uint8_t *src, uint8_t *dst, int w, int h) {
 
 //#include "display_.h"
 #include "driver/include/gpio.h"
-#include "device/ssd1306/ssd1306_.h"
+#include "device/ssd1306/ssd1306.h"
 
 int main(int argc, char *argv[]) {
 
-    SSD1306_I2C *display = new_ssd1306_i2c(new_gpio(),new_i2c());
+    SSD1306_I2C *display = new_ssd1306_i2c(new_gpio(), new_i2c());
 
-    display_begin(superclass(superclass(display,SSD1306),Display));
+
+    //Object* obj = find_class(display->obj,"DISPLAY");
+    Display *i = find_superclass(display, Display, "DISPLAY");
+    DisplayInfo info = {};
+    display_get_info(i, &info);
+    printf("%s.\n", info.vendor);
+    display_begin(i);
+
+    //find_class(display->obj,"DISPLAY");
 
     delete(display->obj);
 

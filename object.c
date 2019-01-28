@@ -20,16 +20,20 @@ struct _Object {
     Destructor destructor;
 };
 
-inline Object **const get_superclass(Object *obj) {
-    return obj->super_class;
+inline const Object **object_get_superclass(Object *obj) {
+    return (const Object **) (obj->super_class);
 }
 
-inline Object **const get_subclass(Object *obj) {
-    return obj->sub_class;
+inline const Object **object_get_subclass(Object *obj) {
+    return (const Object **) (obj->sub_class);
 }
 
-inline void object_print_name(Object *obj) {
-    LOG("Object is : %s", obj->name);
+inline const char *object_get_name(Object *obj) {
+    return obj->name;
+}
+
+inline const void *object_get_host(Object *obj) {
+    return obj->this;
 }
 
 inline void object_link(Object **self, Object **super, void *this, Destructor destructor, const char *name) {
@@ -74,4 +78,43 @@ inline void delete(Object *obj) {
         return;
     }
     delete_next(&obj);
+}
+
+static inline Object *find_myself(Object *self, const char *name) {
+    if (!self || !name) return NULL;
+    const char *my_name = object_get_name(self);
+    LOG("strcmp : %s <-> %s", my_name, name);
+    if (!strcmp(my_name, name)) {
+        LOG("find class %s !", name);
+        return self;
+    }
+    return NULL;
+}
+
+static Object *find_class(Object *self, const char *name) {
+    Object *myself = find_myself(self, name);
+    if (myself) return myself;
+    Object *pre = object_find_superclass(self, name);
+    if (pre) return pre;
+    Object *next = object_find_subclass(self, name);
+    if (next) return next;
+    return NULL;
+}
+
+inline Object *object_find_superclass(Object *self, const char *name) {
+    LOG("%s", __func__);
+    Object **pre = self->super_class;
+    if (!pre) return NULL;
+    Object *who = find_myself(*pre, name);
+    if (who) return who;
+    return object_find_superclass(*pre, name);
+}
+
+inline Object *object_find_subclass(Object *self, const char *name) {
+    LOG("%s", __func__);
+    Object **next = self->sub_class;
+    if (!next) return NULL;
+    Object *who = find_myself(*next, name);
+    if (who) return who;
+    return object_find_subclass(*next, name);
 }

@@ -1,16 +1,19 @@
 //
-// Created by mumumusuc on 19-1-21.
+// Created by mumumusuc on 19-1-25.
 //
 
 #ifndef PI_DISPLAY_DISPLAY_H
 #define PI_DISPLAY_DISPLAY_H
 
 #include <stdint.h>
-#include <stdio.h>
+#include <stdlib.h>
+#include "object.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define API_OVERLOAD __attribute__((overloadable))
 
 typedef struct _DisplayInfo DisplayInfo;
 
@@ -18,22 +21,7 @@ typedef struct _Display Display;
 
 typedef struct _DisplayOps DisplayOps;
 
-
-typedef void(*fpDspBegin)(Display *);
-
-typedef void(*fpDspReset)(Display *);
-
-typedef void(*fpDspTurnOn)(Display *);
-
-typedef void(*fpDspClear)(Display *);
-
-typedef void(*fpDspUpdate)(Display *, void *);
-
-typedef void(*fpDspTurnOff)(Display *);
-
-typedef void(*fpDspEnd)(Display *);
-
-typedef void(*fpDestroy)(void *);
+typedef struct _Display_VTbl DisplayVTbl;
 
 struct _DisplayInfo {
     char vendor[16];
@@ -42,27 +30,35 @@ struct _DisplayInfo {
     uint8_t pixel_format;
 };
 
-struct _DisplayOps {
-    fpDspBegin begin;
-    fpDspReset reset;
-    fpDspTurnOn turn_on;
-    fpDspClear clear;
-    fpDspUpdate update;
-    fpDspTurnOff turn_off;
-    fpDspEnd end;
-};
-
-typedef struct _VTbl VTbl;
-
 struct _Display {
-    DisplayInfo info;
-    DisplayOps ops;
-    fpDestroy destructor;
-    void *this;
+    DisplayVTbl *vtbl;
+    Object *obj;
 };
 
+// define methods
+Display *new_display(void);
+
+void del_display(Display *);
+
+void display_get_info(Display *, DisplayInfo *);
+
+void display_begin(Display *);
+
+void display_reset(Display *);
+
+void display_turn_on(Display *);
+
+void display_clear(Display *);
+
+void display_update(Display *, const void *);
+
+void display_turn_off(Display *);
+
+void display_end(Display *);
+// end define methods
 
 #ifdef __cplusplus
 }
 #endif
+
 #endif //PI_DISPLAY_DISPLAY_H
