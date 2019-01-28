@@ -43,6 +43,7 @@ static GpioVTbl _vtbl = {
 };
 
 BcmGpio *new_bcm_gpio() {
+    LOG("%s", __func__);
     BcmGpio *gpio = (BcmGpio *) malloc(sizeof(BcmGpio));
     assert(gpio);
     Gpio *super = new_gpio();

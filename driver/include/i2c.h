@@ -24,7 +24,7 @@ typedef struct _I2c {
     Object *obj;
 } I2c;
 
-I2c *new_i2c();
+I2c *new_i2c(void);
 
 void del_i2c(void *);
 

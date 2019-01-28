@@ -65,16 +65,18 @@ static DisplayVTbl _vtbl = {
 };
 
 inline Display *new_display(void) {
+    LOG("%s", __func__);
     Display *display = (Display *) malloc(sizeof(Display));
     assert(display);
-    object_link(&(display->obj), NULL, display, (void *) del_display, "DISPLAY");
+    link(display, "DISPLAY", (void *) del_display);
     override(display, &_vtbl);
     return display;
 }
 
-inline void del_display(Display *dsp) {
+inline void del_display(void *dsp) {
     if (dsp) {
-        object_delete(dsp->obj);
+        Display *_self = (Display *) dsp;
+        object_delete(object(_self));
     }
     free(dsp);
     dsp = NULL;
@@ -97,7 +99,7 @@ inline void display_turn_on(Display *dsp) {
 }
 
 inline void display_clear(Display *dsp) {
-    eval_vtbl(dsp, turn_on);
+    eval_vtbl(dsp, clear);
 }
 
 inline void display_update(Display *dsp, const void *buffer) {

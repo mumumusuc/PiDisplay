@@ -69,8 +69,8 @@ void del_ssd1306_i2c(void *self) {
     LOG("%s", __func__);
     if (self) {
         SSD1306_I2C *_self = (SSD1306_I2C *) self;
-        object_delete(_self->obj);
-        delete(_self->i2c->obj);
+        object_delete(object(_self));
+        delete(object(_self->i2c));
     }
     free(self);
     self = NULL;

@@ -208,6 +208,7 @@ static void _begin(Display *self) {
             .pin = _self->pin_reset,
             .mode = GPIO_MODE_OUTPUT,
     };
+    gpio_begin(_self->gpio);
     gpio_init(_self->gpio, &info);
 }
 
@@ -219,7 +220,7 @@ static void _reset(Display *self) {
     display_turn_off(self);
     set_reverse(_self, SSD1306_FALSE, SSD1306_TRUE);
     set_mapping(_self, 0, 0, 64);
-    set_contrast(_self, 0x7F);
+    set_contrast(_self, 0xFF);
     set_point_invert(_self, SSD1306_FALSE);
     set_ignore_ram(_self, SSD1306_FALSE);
     set_frequency(_self, 8, 1);
@@ -273,6 +274,7 @@ static void _end(Display *self) {
     // TODO: uninit gpio & com.
     SSD1306 *_self = subclass(self, SSD1306);
     eval_vtbl(_self, end_com);
+    gpio_end(_self->gpio);
 }
 // end override
 

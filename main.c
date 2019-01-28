@@ -10,14 +10,17 @@
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
 
-static void convert(uint8_t *src, uint8_t *dst, int w, int h) {
+static void convert(uint8_t *src, uint8_t *dst, int w, int h, int offset) {
+    size_t index = 0;
     uint8_t p = 0;
     for (int i = 0; i < h / 8; i++) {
         for (int j = 0; j < w; j++) {
             p = 0;
-            for (int k = 0; k < 8; k++) {
-                p |= (src[(i * 8 + k) * w + j] > 127 ? 0x01 : 0) << k;
-            }
+            if ((j > offset) && (j < w - offset - 1))
+                for (int k = 0; k < 8; k++) {
+                    index = (i * 8 + k) * w + j - offset;
+                    p |= (src[index] > 127 ? 0x01 : 0) << k;
+                }
             dst[i * w + j] = p;
         }
     }
@@ -43,49 +46,34 @@ static void convert2(const uint8_t *src, uint8_t *dst, int w, int h) {
     }
 }
 
-#define OPENCV
-
 //#include "display_.h"
-#include "driver/include/gpio.h"
+#include <math.h>
+#include "driver/bcm/bcm_.h"
 #include "device/ssd1306/ssd1306.h"
 
 int main(int argc, char *argv[]) {
+    if (!new_bcm_gpio) {
+        ERROR("bcm gpio not linked");
+        exit(1);
+    }
+    LOG("bcm gpio linked");
 
-    SSD1306_I2C *display = new_ssd1306_i2c(new_gpio(), new_i2c());
+    Display *display = find_superclass(
+            new_ssd1306_spi4(
+                    superclass(new_bcm_gpio(), Gpio),
+                    superclass(new_bcm_spi(), Spi)),
+            Display,
+            "DISPLAY"
+    );
 
-
-    //Object* obj = find_class(display->obj,"DISPLAY");
-    Display *i = find_superclass(display, Display, "DISPLAY");
-    DisplayInfo info = {};
-    display_get_info(i, &info);
-    printf("%s.\n", info.vendor);
-    display_begin(i);
-
-    //find_class(display->obj,"DISPLAY");
-
-    delete(display->obj);
-
-    /*
-    //SSD1306 *device = NULL;
-    Gpio *gpio = NULL;
-    new_gpio(&gpio);
-    //new_ssd1306(&device, superclass(gpio,Driver));
-    //gpio = NULL;
-    //display_begin(superclass(device,Display));
-    //delete(device->obj);
-    delete(gpio->obj);
-
-    /*
-    Display *display = NULL;
-    _create_display(&display);
-
+    //Display *display = find_superclass(new_ssd1306_i2c(new_gpio(),new_i2c()),Display,"DISPLAY");
     display_begin(display);
-    display_update(display, (const void*)NULL);
+    display_reset(display);
+    display_turn_on(display);
+    //display_clear(display);
+    uint8_t *screen_buffer = (uint8_t *) calloc(1, sizeof(uint8_t) * 128 * 64);
 
-    _destroy_display(display);
 
-    ///free(display);
-    /*
     const char *file = "BadApple.mp4";
     int use_i2c = argc > 1;
     av_register_all();
@@ -120,58 +108,46 @@ int main(int argc, char *argv[]) {
     }
     AVFrame *pFrame = av_frame_alloc();
     AVFrame *pFrameG = av_frame_alloc();
-#ifdef OPENCV
+
     enum AVPixelFormat format = AV_PIX_FMT_GRAY8;
-#else
-    enum AVPixelFormat format = AV_PIX_FMT_GRAY8;
-#endif
+
     int width = 128;
     int height = 64;
     int align = 1;
+
+    float r = 1.0f / fmax(pCodecCtx->width / (float) width, pCodecCtx->height / (float) height);
+    int w = (int) (pCodecCtx->width * r);
+    int h = (int) (pCodecCtx->height * r);
+    int offset = (width - w) / 2;
+
     size_t size = sizeof(uint8_t) * av_image_get_buffer_size(format, width, height, align);
     uint8_t *buffer = (uint8_t *) av_malloc(size);
     av_image_fill_arrays(pFrameG->data, pFrameG->linesize, buffer, format, width, height, align);
     //pFrameG->format = format;
     printf("size = %ld, linesize = %d.\n", size, pFrameG->linesize[0]);
     struct SwsContext *pSwsCtx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,
-                                                width, height, format,
+                                                w, h, format,
                                                 SWS_BILINEAR, NULL, NULL, NULL);
     AVPacket packet;
     int frameCount = 0;
-#ifdef OPENCV
-    IplImage *dst = cvCreateImage(cvSize(width, height), 8, 1);
-    cvNamedWindow(file, CV_WINDOW_AUTOSIZE);
-    dst->imageData = pFrameG->data[0];
-#else
-    Canvas *canvas = new_Canvas(use_i2c);
+
+    //Canvas *canvas = new_Canvas(use_i2c);
     //canvas->bind(canvas, pFrameG->data[0], size);
-#endif
 
     while (av_read_frame(pFmtCtx, &packet) >= 0) {
         if (packet.stream_index == videoStream) {
             avcodec_send_packet(pCodecCtx, &packet);
             if (avcodec_receive_frame(pCodecCtx, pFrame) == 0) {
                 sws_scale(pSwsCtx, pFrame->data, pFrame->linesize, 0, pFrame->height, pFrameG->data, pFrameG->linesize);
-#ifdef OPENCV
-                cvShowImage(file, dst);
-                uint8_t key = cvWaitKey(16);
-                if (key == 27) {
-                    break;
-                }
-#else
-                convert(pFrameG->data[0], canvas->display_buffer, width, height);
-                canvas->flush(canvas);
+
+                convert(pFrameG->data[0], screen_buffer, width, height, offset);
+                display_update(display, screen_buffer);
                 delay(16);
-#endif
+
             }
         }
     }
-#ifdef OPENCV
-    cvReleaseImage(&dst);
-    cvDestroyAllWindows();
-#else
-    del_Canvas(canvas);
-#endif
+
 
     avformat_close_input(&pFmtCtx);
     avcodec_close(pCodecCtx);
@@ -179,6 +155,11 @@ int main(int argc, char *argv[]) {
     sws_freeContext(pSwsCtx);
     av_packet_unref(&packet);
 
+    free(screen_buffer);
+//display_turn_off(display);
+    display_end(display);
+
+    delete(object(display));
     //IplImage *frame;
 
     /*

@@ -38,7 +38,7 @@ struct _Display {
 // define methods
 Display *new_display(void);
 
-void del_display(Display *);
+void del_display(void *);
 
 void display_get_info(Display *, DisplayInfo *);
 

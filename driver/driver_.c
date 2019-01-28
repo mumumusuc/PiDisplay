@@ -105,7 +105,7 @@ static I2cVTbl _i2c_vtbl = {
         .end = _i2c_end,
 };
 
-inline I2c *new_i2c() {
+inline I2c *new_i2c(void) {
     I2c *i2c = (I2c *) malloc(sizeof(I2c));
     assert(i2c);
     link(i2c, "I2C", del_i2c);

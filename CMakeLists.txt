@@ -18,4 +18,4 @@ add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 set(ffmpeg avformat avcodec avutil swscale avdevice)
 
-target_link_libraries(${PROJECT_NAME} ${ffmpeg})
+target_link_libraries(${PROJECT_NAME} ${ffmpeg} m)

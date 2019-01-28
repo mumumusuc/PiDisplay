@@ -11,7 +11,7 @@
 #define LOG_TAG "Canvas"
 
 int MODEL = DISPLAY_SSD1306_BCM_SPI4;
-
+/*
 static void bind_display(Canvas *canvas) {
     assert(!canvas->display);
     LOG("bind_display");
@@ -98,4 +98,4 @@ void del_Canvas(Canvas *canvas) {
     }
     free(canvas);
     canvas = NULL;
-}
+}*/

@@ -12,6 +12,8 @@ extern "C" {
 #include <string.h>
 #include "common.h"
 
+#define object(self)                              ((self)->obj)
+
 #define superclass(self, class)                   container_of(object_get_superclass(self->obj),class,obj)
 #define subclass(self, class)                     container_of(object_get_subclass(self->obj),class,obj)
 
