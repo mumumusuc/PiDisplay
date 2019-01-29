@@ -203,12 +203,12 @@ static void _begin(Display *self) {
     LOG("%s", __func__);
     // TODO: init gpio & com.
     SSD1306 *_self = subclass(self, SSD1306);
+    gpio_begin(_self->gpio);
     eval_vtbl(_self, begin_com);
     GpioInfo info = {
             .pin = _self->pin_reset,
             .mode = GPIO_MODE_OUTPUT,
     };
-    gpio_begin(_self->gpio);
     gpio_init(_self->gpio, &info);
 }
 

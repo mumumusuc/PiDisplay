@@ -19,6 +19,7 @@ static void _begin_com(SSD1306 *self) {
     LOG("%s", __func__);
     SSD1306_SPI4 *_self = subclass(self, SSD1306_SPI4);
     SpiInfo info = {
+            .mode = SPI_MODE_0,
             .cs = SPI_CS_0,
             .speed = SPI_MAX_SPEED,
     };
@@ -28,6 +29,7 @@ static void _begin_com(SSD1306 *self) {
             .pin = SPI_DC,
             .mode = GPIO_MODE_OUTPUT,
     };
+    gpio_begin(self->gpio);
     gpio_init(self->gpio, &gpio_info);
 }
 

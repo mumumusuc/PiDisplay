@@ -9,9 +9,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <zconf.h>
+#include <errno.h>
 
 #define TEST
 #define DEBUG
+#define PI_3
 
 #ifdef DEBUG
 #define DEFAULT_METHOD()    ({ERROR("%s",__func__);})
@@ -39,7 +41,7 @@ do{                                                                             
 
 #define ERROR(format, ...)                                                      \
 do{                                                                             \
-      fprintf(stderr,"(ERR)"LOG_TAG" : "format".\n",##__VA_ARGS__);             \
+      fprintf(stderr,"(ERR)"LOG_TAG" : "format".(%s)\n",##__VA_ARGS__,strerror(errno));             \
 } while(0)
 
 #define METHOD_NOT_IMPLEMENTED()                                                \
@@ -50,7 +52,9 @@ do{                                                                             
 
 #define eval_vtbl(class, member, ...)  do{(class)->vtbl->member((class),##__VA_ARGS__);}while(0)
 
-#define delay(m_sec)    do{usleep(1000*(m_sec));}while(0)
+#define udelay(u_sec)    usleep((u_sec))
+
+#define delay(m_sec)    usleep(1000*(m_sec))
 
 #define API_HIDE        __attribute__((unavailable("Private member.")))
 

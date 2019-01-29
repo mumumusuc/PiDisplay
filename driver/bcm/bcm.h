@@ -1,5 +1,5 @@
 //
-// Created by mumumusuc on 19-1-19.
+// Created by mumumusuc on 19-1-27.
 //
 
 #ifndef PI_DISPLAY_BCM_H
@@ -11,35 +11,37 @@
 extern "C" {
 #endif
 // gpio
-typedef struct _BcmGPIO {
-    GPIO base;
-} BcmGPIO;
+typedef struct _BcmGpio {
+    Object *obj;
+} BcmGpio;
 
-BcmGPIO *new_BcmGPIO();
+BcmGpio *new_bcm_gpio() API_WEAK;
 
-void del_BcmGPIO(BcmGPIO *);
+void del_bcm_gpio(void *) API_WEAK;
 // end gpio
 
 // i2c
-typedef struct _BcmI2C {
-    I2C base;
-} BcmI2C;
+typedef struct _BcmI2c {
+    Object *obj;
+} BcmI2c;
 
-BcmI2C *new_BcmI2C();
+BcmI2c *new_bcm_i2c() API_WEAK;
 
-void del_BcmI2C(BcmI2C *);
+void del_bcm_i2c(void *) API_WEAK;
 //end i2c
 
 // spi
-typedef struct _BcmSPI {
-    SPI base;
-} BcmSPI;
+typedef struct _BcmSpi {
+    Object *obj;
+} BcmSpi;
 
-BcmSPI *new_BcmSPI();
+BcmSpi *new_bcm_spi() API_WEAK;
 
-void del_BcmSPI(BcmSPI *);
+void del_bcm_spi(void *) API_WEAK;
 //end spi
+
 #ifdef __cplusplus
 }
 #endif
+
 #endif //PI_DISPLAY_BCM_H

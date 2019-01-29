@@ -11,10 +11,16 @@
 extern "C" {
 #endif
 
+#define SPI_MODE_0 (0|0)//SCLK空闲时为低电平，第一个时间沿采样
+#define SPI_MODE_1 (0|SPI_CPHA)//SCLK空闲时为高电平，第一个时间沿采样
+#define SPI_MODE_2 (SPI_CPOL|0)//SCLK空闲时为低电平，第二个时间沿采样
+#define SPI_MODE_3 (SPI_CPOL|SPI_CPHA)//SCLK空闲时为高电平，第二个时间沿采样
+
 // define spi
 typedef struct _Spi_VTbl SpiVTbl;
 
 typedef struct _SpiInfo {
+    uint8_t mode;
     uint8_t cs;
     uint32_t speed;
 } SpiInfo;

@@ -11,7 +11,6 @@ find_library(
 )
 
 if (BCM_HOST_LIBRARIES)
-    list(REMOVE_ITEM SRC_FILES "bcm_host.c")
     link_libraries(${BCM_HOST_LIBRARIES})
 endif ()
 

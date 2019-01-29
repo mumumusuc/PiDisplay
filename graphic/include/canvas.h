@@ -45,7 +45,7 @@ struct _Canvas {
     fpCanvasUnbind unbind;
 };
 
-Canvas *new_Canvas(int);
+Canvas *new_Canvas(void);
 
 void del_Canvas(Canvas *);
 

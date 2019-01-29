@@ -4,7 +4,7 @@
 
 #include <assert.h>
 #include "driver_protected.h"
-#include "bcm_.h"
+#include "bcm.h"
 #include "bcm2835.h"
 
 #undef  LOG_TAG
@@ -21,11 +21,11 @@ static void _init(Gpio *self, const GpioInfo *info) {
     bcm2835_gpio_fsel(info->pin, info->mode);
 }
 
-static void _write(void *self, const uint8_t *const pin, const size_t level) {
+static void _write(void *self, const uint8_t *pin, size_t level) {
     bcm2835_gpio_write(*pin, (uint8_t) level);
 }
 
-static void _read(void *self, uint8_t *const buff, const size_t pin) {
+static void _read(void *self, uint8_t *buff, size_t pin) {
     *buff = bcm2835_gpio_lev(pin);
 }
 
@@ -48,7 +48,7 @@ BcmGpio *new_bcm_gpio() {
     assert(gpio);
     Gpio *super = new_gpio();
     super->vtbl = &_vtbl;
-    link2(gpio, super, LOG_TAG, del_bcm_gpio);
+    extend(gpio, super, "BCM_GPIO", del_bcm_gpio);
     return gpio;
 }
 

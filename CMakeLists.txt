@@ -18,4 +18,13 @@ add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 set(ffmpeg avformat avcodec avutil swscale avdevice)
 
+find_package(OpenCV)
+message("Found OpenCV: ${OpenCV_FOUND}")
+if(${OpenCV_FOUND})
+    include_directories(${OpenCV_INCLUDE_DIRS})
+    link_directories(${OpenCV_LIBRARY_DIRS})
+    target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
+endif()
+
 target_link_libraries(${PROJECT_NAME} ${ffmpeg} m)
+

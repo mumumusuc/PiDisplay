@@ -5,7 +5,7 @@
 #ifndef PI_DISPLAY_DRIVER_PROTECTED_H
 #define PI_DISPLAY_DRIVER_PROTECTED_H
 
-#include "driver_.h"
+#include "driver.h"
 
 #ifdef __cplusplus
 extern "C" {

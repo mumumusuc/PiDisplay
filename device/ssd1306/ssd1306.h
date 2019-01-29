@@ -6,7 +6,7 @@
 #define PI_DISPLAY_SSD1306_H
 
 #include "display.h"
-#include "driver_.h"
+#include "driver.h"
 
 #ifdef __cplusplus
 extern "C" {
