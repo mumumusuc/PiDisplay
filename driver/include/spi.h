@@ -32,8 +32,6 @@ typedef struct _Spi {
 
 Spi *new_spi();
 
-void del_spi(void *);
-
 void spi_begin(Spi *);
 
 void spi_init(Spi *, const SpiInfo *);

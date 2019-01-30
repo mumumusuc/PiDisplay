@@ -47,6 +47,16 @@ static I2cVTbl _vtbl = {
         .end = _end,
 };
 
+static void del_bcm_i2c(void *i2c) {
+    LOG("%s", __func__);
+    if (i2c) {
+        BcmI2c *self = (BcmI2c *) i2c;
+        object_delete(self->obj);
+    }
+    free(i2c);
+    i2c = NULL;
+}
+
 BcmI2c *new_bcm_i2c() {
     LOG("%s", __func__);
     BcmI2c *i2c = (BcmI2c *) malloc(sizeof(BcmI2c));
@@ -55,14 +65,4 @@ BcmI2c *new_bcm_i2c() {
     super->vtbl = &_vtbl;
     link2(i2c, super, "BCM_I2C", del_bcm_i2c);
     return i2c;
-}
-
-void del_bcm_i2c(void *i2c) {
-    LOG("%s", __func__);
-    if (i2c) {
-        BcmI2c *self = (BcmI2c *) i2c;
-        object_delete(self->obj);
-    }
-    free(i2c);
-    i2c = NULL;
 }

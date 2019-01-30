@@ -26,6 +26,12 @@ struct _SSDVTbl {
     fpSSDWriteCmd write_cmd;
 };
 
+void del_ssd1306(void *);
+
+void del_ssd1306_i2c(void *);
+
+void del_ssd1306_spi4(void *);
+
 #ifdef __cplusplus
 }
 #endif

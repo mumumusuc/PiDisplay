@@ -40,6 +40,8 @@ struct _Display_VTbl {
     fpDspEnd end;
 };
 
+void del_display(void *);
+
 #ifdef __cplusplus
 }
 #endif

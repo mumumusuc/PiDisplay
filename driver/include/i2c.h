@@ -26,8 +26,6 @@ typedef struct _I2c {
 
 I2c *new_i2c(void);
 
-void del_i2c(void *);
-
 void i2c_begin(I2c *);
 
 void i2c_init(I2c *, const I2cInfo *);

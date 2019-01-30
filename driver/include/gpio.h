@@ -32,8 +32,6 @@ struct _Gpio {
 
 Gpio *new_gpio(void);
 
-void del_gpio(void *);
-
 void gpio_begin(Gpio *);
 
 void gpio_init(Gpio *, const GpioInfo *);

@@ -83,9 +83,9 @@ inline void delete(Object *obj) {
 static inline Object *find_myself(Object *self, const char *name) {
     if (!self || !name) return NULL;
     const char *my_name = object_get_name(self);
-    LOG("strcmp : %s <-> %s", my_name, name);
+    // LOG("strcmp : %s <-> %s", my_name, name);
     if (!strcmp(my_name, name)) {
-        LOG("find class %s !", name);
+        // LOG("find class %s !", name);
         return self;
     }
     return NULL;

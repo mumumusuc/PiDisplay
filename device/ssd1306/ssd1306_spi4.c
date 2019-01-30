@@ -31,6 +31,7 @@ static void _begin_com(SSD1306 *self) {
     };
     gpio_begin(self->gpio);
     gpio_init(self->gpio, &gpio_info);
+    LOG("%s end", __func__);
 }
 
 static void _end_com(SSD1306 *self) {

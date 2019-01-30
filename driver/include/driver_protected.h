@@ -29,6 +29,8 @@ struct _Gpio_VTbl {
     fpGpioRead read;
     fpGpioEnd end;
 };
+
+void del_gpio(void *);
 // end define gpio protected
 
 // define i2c protected
@@ -49,6 +51,8 @@ struct _I2c_VTbl {
     fpI2cRead read;
     fpI2cEnd end;
 };
+
+void del_i2c(void *);
 // end define i2c protected
 
 // define spi protected
@@ -69,6 +73,8 @@ struct _Spi_VTbl {
     fpSpiRead read;
     fpSpiEnd end;
 };
+
+void del_spi(void *);
 // end define spi protected
 
 #ifdef __cplusplus

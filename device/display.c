@@ -113,3 +113,43 @@ inline void display_turn_off(Display *dsp) {
 inline void display_end(Display *dsp) {
     eval_vtbl(dsp, end);
 }
+
+#include "factory.h"
+#include "ssd1306/ssd1306.h"
+#include "linux/default.h"
+#include "bcm/bcm.h"
+
+static int check_bcm(void) {
+    if (!new_bcm_gpio) {
+        ERROR("%s : lib bcm not linked", __func__);
+        exit(1);
+    }
+}
+
+Display *create_display(const char *type) {
+    Display *display = NULL;
+    if (0 == strcmp(type, device_type[0])) {
+        // -> /ssd1306/bcm/i2c
+        check_bcm();
+        display = find_superclass(
+                new_ssd1306_i2c(superclass(new_bcm_gpio(), Gpio), superclass(new_bcm_i2c(), I2c)),
+                Display, "DISPLAY");
+    } else if (0 == strcmp(type, device_type[1])) {
+        // -> "/ssd1306/bcm/spi"
+        check_bcm();
+        display = find_superclass(
+                new_ssd1306_spi4(superclass(new_bcm_gpio(), Gpio), superclass(new_bcm_spi(), Spi)),
+                Display, "DISPLAY");
+    } else if (0 == strcmp(type, device_type[2])) {
+        // -> "/ssd1306/default/i2c"
+        display = find_superclass(
+                new_ssd1306_i2c(superclass(new_default_gpio(), Gpio), superclass(new_default_i2c(), I2c)),
+                Display, "DISPLAY");
+    } else if (0 == strcmp(type, device_type[3])) {
+        // -> "/ssd1306/default/spi"
+        display = find_superclass(
+                new_ssd1306_spi4(superclass(new_default_gpio(), Gpio), superclass(new_default_spi(), Spi)),
+                Display, "DISPLAY");
+    }
+    return display;
+}

@@ -5,23 +5,24 @@
 #ifndef PI_DISPLAY_FACTORY_H
 #define PI_DISPLAY_FACTORY_H
 
-#include "display_protected.h"
+#include "display.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef enum {
-    DISPLAY_NONE = 0,
-    DISPLAY_SSD1306_BCM_I2C,
-    DISPLAY_SSD1306_BCM_SPI4,
-    DISPLAY_SSD1306_DEF_I2C,
-    DISPLAY_SSD1306_DEF_SPI4,
-} DisplayType;
+
+#define DEVICE_NUM  4
+
+static const char *device_type[DEVICE_NUM] = {
+        "/ssd1306/bcm/i2c",
+        "/ssd1306/bcm/spi",
+        "/ssd1306/default/i2c",
+        "/ssd1306/default/spi",
+};
 
 // define device factory
-Display *create_display(DisplayType);
+Display *create_display(const char *);
 
-void _destroy_display(Display *);
 // end define device factory
 #ifdef __cplusplus
 }

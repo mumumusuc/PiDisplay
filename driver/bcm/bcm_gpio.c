@@ -42,6 +42,15 @@ static GpioVTbl _vtbl = {
         .end = _end,
 };
 
+static void del_bcm_gpio(void *gpio) {
+    if (gpio) {
+        BcmGpio *self = (BcmGpio *) gpio;
+        object_delete(self->obj);
+    }
+    free(gpio);
+    gpio = NULL;
+}
+
 BcmGpio *new_bcm_gpio() {
     LOG("%s", __func__);
     BcmGpio *gpio = (BcmGpio *) malloc(sizeof(BcmGpio));
@@ -52,11 +61,3 @@ BcmGpio *new_bcm_gpio() {
     return gpio;
 }
 
-void del_bcm_gpio(void *gpio) {
-    if (gpio) {
-        BcmGpio *self = (BcmGpio *) gpio;
-        object_delete(self->obj);
-    }
-    free(gpio);
-    gpio = NULL;
-}

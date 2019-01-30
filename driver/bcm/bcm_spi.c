@@ -52,16 +52,7 @@ static SpiVTbl _vtbl = {
         .end = _end,
 };
 
-BcmSpi *new_bcm_spi() {
-    BcmSpi *spi = (BcmSpi *) malloc(sizeof(BcmSpi));
-    assert(spi);
-    Spi *super = new_spi();
-    super->vtbl = &_vtbl;
-    link2(spi, super, "BCM_SPI", del_bcm_spi);
-    return spi;
-}
-
-void del_bcm_spi(void *spi) {
+static void del_bcm_spi(void *spi) {
     LOG("%s", __func__);
     if (spi) {
         BcmSpi *self = (BcmSpi *) spi;
@@ -69,4 +60,13 @@ void del_bcm_spi(void *spi) {
     }
     free(spi);
     spi = NULL;
+}
+
+BcmSpi *new_bcm_spi() {
+    BcmSpi *spi = (BcmSpi *) malloc(sizeof(BcmSpi));
+    assert(spi);
+    Spi *super = new_spi();
+    super->vtbl = &_vtbl;
+    link2(spi, super, "BCM_SPI", del_bcm_spi);
+    return spi;
 }

@@ -216,8 +216,11 @@ static void _reset(Display *self) {
     LOG("%s", __func__);
     // TODO: init/reset display.
     SSD1306 *_self = subclass(self, SSD1306);
-    display_clear(self);
-    display_turn_off(self);
+    gpio_write(_self->gpio, &(_self->pin_reset), GPIO_LOW);
+    udelay(10);
+    gpio_write(_self->gpio, &(_self->pin_reset), GPIO_HIGH);
+    //display_clear(self);
+    //display_turn_off(self);
     set_reverse(_self, SSD1306_FALSE, SSD1306_TRUE);
     set_mapping(_self, 0, 0, 64);
     set_contrast(_self, 0xFF);
@@ -244,10 +247,7 @@ static void _turn_on(Display *self) {
 static void _clear(Display *self) {
     LOG("%s", __func__);
     // TODO: clear display.
-    SSD1306 *_self = subclass(self, SSD1306);
-    gpio_write(_self->gpio, &(_self->pin_reset), GPIO_LOW);
-    delay(10);
-    gpio_write(_self->gpio, &(_self->pin_reset), GPIO_HIGH);
+    eval_vtbl(self, reset);
     eval_vtbl(self, turn_on);
 }
 

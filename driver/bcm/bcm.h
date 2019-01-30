@@ -17,7 +17,7 @@ typedef struct _BcmGpio {
 
 BcmGpio *new_bcm_gpio() API_WEAK;
 
-void del_bcm_gpio(void *) API_WEAK;
+//void del_bcm_gpio(void *) API_WEAK;
 // end gpio
 
 // i2c
@@ -27,7 +27,7 @@ typedef struct _BcmI2c {
 
 BcmI2c *new_bcm_i2c() API_WEAK;
 
-void del_bcm_i2c(void *) API_WEAK;
+//void del_bcm_i2c(void *) API_WEAK;
 //end i2c
 
 // spi
@@ -37,7 +37,7 @@ typedef struct _BcmSpi {
 
 BcmSpi *new_bcm_spi() API_WEAK;
 
-void del_bcm_spi(void *) API_WEAK;
+//void del_bcm_spi(void *) API_WEAK;
 //end spi
 
 #ifdef __cplusplus

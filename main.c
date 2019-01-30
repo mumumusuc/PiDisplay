@@ -3,8 +3,6 @@
 //
 
 #include <string.h>
-//#include "canvas.h"
-
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
@@ -50,36 +48,16 @@ static void convert2(const uint8_t *src, uint8_t *dst, int w, int h) {
 #include <math.h>
 #include <getopt.h>
 #include <opencv2/imgproc/imgproc_c.h>
-#include "driver/bcm/bcm.h"
-#include "driver/linux/default.h"
-#include "device/ssd1306/ssd1306.h"
+#include "factory.h"
 
 #define API_BEFORE  __attribute__((constructor))
 #define API_AFTER   __attribute__((destructor))
-#define DEVICE_NUM  4
-
-typedef struct {
-    char name[24];
-
-    void (*display)(void);
-
-    void (*gpio)(void);
-
-    void (*i2c)(void);
-
-    void (*spi)(void);
-} Device;
 
 static Display *display = NULL;
 static char device[8] = "ssd1306";
-static char type[8] = "default";
-static char driver[4] = "spi";
-static Device devices[DEVICE_NUM] = {
-        {.name="/ssd1306/default/i2c", .display=new_ssd1306_i2c, .gpio=new_default_gpio, .i2c=new_default_i2c, .spi=new_default_spi},
-        {.name="/ssd1306/default/spi", .display=new_ssd1306_spi4, .gpio=new_default_gpio, .i2c=new_default_i2c, .spi=new_default_spi},
-        {.name="/ssd1306/bcm/i2c", .display=new_ssd1306_i2c, .gpio=new_bcm_gpio, .i2c=new_bcm_i2c, .spi=new_bcm_spi},
-        {.name="/ssd1306/bcm/spi", .display=new_ssd1306_spi4, .gpio=new_bcm_gpio, .i2c=new_bcm_i2c, .spi=new_bcm_spi},
-};
+static char driver[8] = "default";
+static char type[4] = "spi";
+static char *file = "BadApple.mp4";
 
 API_BEFORE static void register_device() {
     LOG("%s", __func__);
@@ -95,7 +73,8 @@ API_AFTER static void unregister_devices() {
 static print_usage(const char *prog) {
     puts("  -D --device    display device( default ssd1306 )\n"
          "  -d --driver    display driver( i2c|spi, default spi4 )\n"
-         "  -t --type      driver type\n");
+         "  -t --type      driver type( default linux )\n"
+         "  -i --input     input file( default BadApple )\n");
     exit(1);
 }
 
@@ -106,10 +85,11 @@ static void parse_args(int argc, char *const argv[]) {
             {"device", 1, 0, 'D'},
             {"driver", 1, 0, 'd'},
             {"type",   1, 0, 't'},
+            {"input",  1, 0, 'i'},
             {NULL,     0, 0, 0},
     };
     while (1) {
-        result = getopt_long(argc, argv, "D:d:t:", lopts, NULL);
+        result = getopt_long(argc, argv, "D:d:t:i:", lopts, NULL);
         if (result == -1) break;
         switch (result) {
             case 'D':
@@ -122,7 +102,11 @@ static void parse_args(int argc, char *const argv[]) {
                 break;
             case 't':
                 strcpy(type, optarg);
-                printf("-i %s.\n", type);
+                printf("-t %s.\n", type);
+                break;
+            case 'i':
+                file = optarg;
+                printf("-i %s.\n", file);
                 break;
             default:
                 print_usage(argv[0]);
@@ -138,63 +122,21 @@ static void draw_text(IplImage *src, const char *text, CvPoint origin, CvFont *f
 int main(int argc, char *const argv[]) {
     parse_args(argc, argv);
     char _device[32];
-    sprintf(_device, "/%s/%s/%s", device, type, driver);
+    sprintf(_device, "/%s/%s/%s", device, driver, type);
     LOG("%s", _device);
-    /*
-    Gpio *gpio = superclass(new_default_gpio(), Gpio);
-    GpioInfo info = {
-            .pin = 22,
-            .mode = GPIO_MODE_OUTPUT,
-    };
-    gpio_begin(gpio);
-    gpio_init(gpio, &info);
-    size_t cnt = 10;
-    while (--cnt > 0) {
-        gpio_write(gpio, &info.pin, GPIO_HIGH);
-        delay(500);
-        gpio_write(gpio, &info.pin, GPIO_LOW);
-        delay(500);
-    }
-    gpio_end(gpio);
-    delete(object(gpio));
-*/
-    if (!new_bcm_gpio) {
-        ERROR("bcm gpio not linked");
-        exit(1);
-    }
-    LOG("bcm gpio linked");
 
-    if (argc > 1) {
-        display = find_superclass(
-                new_ssd1306_i2c(
-                        superclass(new_default_gpio(), Gpio),
-                        superclass(new_bcm_i2c(), I2c)),
-                Display, "DISPLAY"
-        );
-    } else {
-        display = find_superclass(
-                new_ssd1306_spi4(
-                        superclass(new_default_gpio(), Gpio),
-                        superclass(new_default_spi(), Spi)),
-                Display, "DISPLAY"
-        );
-    }*/
+    display = create_display(_device);
+
     if (!display) {
         ERROR();
         exit(-1);
     }
-    //Display *display = find_superclass(new_ssd1306_i2c(new_gpio(),new_i2c()),Display,"DISPLAY");
+
     display_begin(display);
     display_reset(display);
     display_turn_on(display);
-    //display_clear(display);
+    display_clear(display);
     uint8_t *screen_buffer = (uint8_t *) calloc(1, sizeof(uint8_t) * 128 * 64);
-
-
-    char *file = "BadApple.mp4";
-    if (argc > 1) {
-        //   file = argv[1];
-    }
 
     av_register_all();
     AVFormatContext *pFmtCtx = NULL;
@@ -251,8 +193,6 @@ int main(int argc, char *const argv[]) {
                                                 SWS_BILINEAR, NULL, NULL, NULL);
     AVPacket packet;
 
-    //Canvas *canvas = new_Canvas(use_i2c);
-    //canvas->bind(canvas, pFrameG->data[0], size);
     IplImage *src = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 1);
     src->imageData = pFrameG->data[0];
 
@@ -299,30 +239,14 @@ int main(int argc, char *const argv[]) {
         }
     }
 
-
     avformat_close_input(&pFmtCtx);
     avcodec_close(pCodecCtx);
     av_frame_free(&pFrame);
     sws_freeContext(pSwsCtx);
     av_packet_unref(&packet);
-
     free(screen_buffer);
-//display_turn_off(display);
+    //display_turn_off(display);
     display_end(display);
-
-    delete(object(display));
-    //IplImage *frame;
-
-    /*
-     while (true) {
-
-         cvShowImage("camera", frame);
-         uint8_t key = cvWaitKey(16);
-         if (key == 27) {
-             break;
-         }
-     }
- */
     /*
     size_t width = 320;
     size_t height = 240;
@@ -364,28 +288,5 @@ int main(int argc, char *const argv[]) {
     cvReleaseImage(dst);
     cvReleaseCapture(&capture);
     cvDestroyAllWindows();
-
-/*
-Canvas *canvas = new_Canvas();
-
-const char *file = "test_2.png";
-CvMat *img = cvLoadImageM(file, CV_LOAD_IMAGE_GRAYSCALE);
-printf("step = %d , type = %x.\n", img->step, img->type);
-CvMat src = cvMat(64, 128, CV_8UC1, malloc(128 * 64));
-CvMat dst = cvMat(8, 128, CV_8UC1, malloc(128 * 8));
-cvResize(img, &src, CV_INTER_LINEAR);
-convert(img->data.ptr, dst.data.ptr, 128, 8);
-
-void *old = canvas->bind(canvas, dst.data.ptr, 8 * 128);
-free(old);
-canvas->flush(canvas);
-
-del_Canvas(canvas);
-*/
-
-
-//cvNamedWindow(file, CV_WINDOW_AUTOSIZE);
-//cvShowImage(file, &src);
-//cvWaitKey(0);
-//cvDestroyAllWindows();
+     */
 }
