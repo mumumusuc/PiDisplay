@@ -11,8 +11,6 @@
 #include <zconf.h>
 #include <errno.h>
 
-#define TEST
-#define DEBUG
 #define PI_3
 
 #ifdef DEBUG
@@ -33,16 +31,13 @@
     (type *)( (char *)__mptr - offsetof(type,member) );})
 #endif
 
+#ifdef DEBUG
+#define LOG(format, ...)        fprintf(stdout, "(LOG)"LOG_TAG" : "format".\n", ##__VA_ARGS__)
+#else
+#define LOG(format, ...)        ({})
+#endif
 
-#define LOG(format, ...)                                                        \
-do{                                                                             \
-    fprintf(stdout, "(LOG)"LOG_TAG" : "format".\n", ##__VA_ARGS__);             \
-} while(0)
-
-#define ERROR(format, ...)                                                      \
-do{                                                                             \
-      fprintf(stderr,"(ERR)"LOG_TAG" : "format".(%s)\n",##__VA_ARGS__,strerror(errno));             \
-} while(0)
+#define ERROR(format, ...)      fprintf(stderr,"(ERR)"LOG_TAG" : "format".(%s)\n",##__VA_ARGS__,strerror(errno))
 
 #define METHOD_NOT_IMPLEMENTED()                                                \
 do{                                                                             \
