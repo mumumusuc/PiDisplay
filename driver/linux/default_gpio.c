@@ -49,9 +49,10 @@ static unsigned get_sdram_address(void) {
 struct _GpioPriv {
     volatile uint32_t *bcm_peripherals_base;
     volatile uint32_t *bcm_gpio_base;
-    volatile uint32_t *GPSET0;
     volatile uint32_t *GPFSEL0;
+    volatile uint32_t *GPSET0;
     volatile uint32_t *GPCLR0;
+    volatile uint32_t *GPLEV0;
 };
 
 static const char *_node = "/dev/mem";
@@ -76,7 +77,7 @@ static void set_mode(DefaultGpio *gpio, uint8_t pin, uint8_t mode) {
     volatile uint32_t *addr = gpio->priv->GPFSEL0 + offset;
     uint32_t value = read_addr(gpio, addr);
     uint32_t mask = ~(0x00000007 << (3 * _pin));
-    value = (value & mask) | ((mode & 0x01) << (3 * _pin));
+    value = (value & mask) | ((mode & 0x07) << (3 * _pin));
     write_addr(gpio, addr, value);
 }
 
@@ -131,6 +132,7 @@ static void _begin(Gpio *self) {
     priv->GPFSEL0 = priv->bcm_gpio_base + 0x0000 / size;
     priv->GPSET0 = priv->bcm_gpio_base + 0x001C / size;
     priv->GPCLR0 = priv->bcm_gpio_base + 0x0028 / size;
+    priv->GPLEV0 = priv->bcm_gpio_base + 0x0034 / size;
     close(fd);
 }
 
@@ -145,7 +147,23 @@ static void _write(Gpio *self, const uint8_t *pin, size_t level) {
 }
 
 static void _read(Gpio *self, uint8_t *buff, size_t pin) {
-    METHOD_NOT_IMPLEMENTED();
+    DefaultGpio *gpio = subclass(self, DefaultGpio);
+    // read mode
+    uint8_t offset = pin / 10;
+    uint8_t _pin = pin % 10;
+    volatile uint32_t *addr = gpio->priv->GPFSEL0 + offset;
+    uint32_t value = read_addr(gpio, addr);
+    uint32_t mask = 0x00000007 << (3 * _pin);
+    uint8_t mode = 0xFF & ((value & mask) >> (3 * _pin));
+
+    offset = pin / 32;
+    _pin = pin % 32;
+    addr = gpio->priv->GPLEV0 + offset;
+    value = read_addr(gpio, addr);
+    mask = (0x00000001 << _pin);
+    uint8_t level = 0xFF & ((value & mask) >> _pin);
+
+    *buff = ((mode & 0x0F) << 4) | (level & 0x0F);
 }
 
 static void _end(Gpio *self) {
@@ -168,7 +186,7 @@ DefaultGpio *new_default_gpio() {
     DefaultGpio *gpio = (DefaultGpio *) malloc(sizeof(DefaultGpio));
     assert(gpio);
     gpio->priv = (GpioPriv *) malloc(sizeof(GpioPriv));
-    gpio->priv->bcm_peripherals_base = MAP_FAILED;
+    gpio->priv->bcm_peripherals_base = (uint32_t *) MAP_FAILED;
     Gpio *super = new_gpio();
     super->vtbl = &_vtbl;
     extend(gpio, super, "DEFAULT_GPIO", del_default_gpio);

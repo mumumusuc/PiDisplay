@@ -6,6 +6,7 @@
 #define PI_DISPLAY_SPI_H
 
 #include "object.h"
+#include "gpio.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,7 +33,7 @@ typedef struct _Spi {
 
 Spi *new_spi();
 
-void spi_begin(Spi *);
+void spi_begin(Spi *,Gpio*);
 
 void spi_init(Spi *, const SpiInfo *);
 

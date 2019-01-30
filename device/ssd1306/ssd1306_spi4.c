@@ -9,6 +9,7 @@
 
 #undef  LOG_TAG
 #define LOG_TAG         "SSD1306_SPI4"
+#define SPI_CS_PIN      8
 #define SPI_CS_0        0
 #define SPI_CS_1        1
 #define SPI_DC          22
@@ -18,20 +19,43 @@
 static void _begin_com(SSD1306 *self) {
     LOG("%s", __func__);
     SSD1306_SPI4 *_self = subclass(self, SSD1306_SPI4);
+    // init gpio
+    gpio_begin(self->gpio);
     SpiInfo info = {
             .mode = SPI_MODE_0,
             .cs = SPI_CS_0,
             .speed = SPI_MAX_SPEED,
     };
-    spi_begin(_self->spi);
-    spi_init(_self->spi, &info);
     GpioInfo gpio_info = {
             .pin = SPI_DC,
             .mode = GPIO_MODE_OUTPUT,
     };
-    gpio_begin(self->gpio);
     gpio_init(self->gpio, &gpio_info);
-    LOG("%s end", __func__);
+    // init spi
+    spi_begin(_self->spi, self->gpio);
+    spi_init(_self->spi, &info);
+    /*
+     uint8_t value = 0;
+     uint8_t pin = 7;// CE1
+     gpio_read(self->gpio, &value, pin);
+     LOG("CE1 = %X", value);
+     value = 0;
+     pin = 8;// CE0
+     gpio_read(self->gpio, &value, pin);
+     LOG("CE0 = %X", value);
+     value = 0;
+     pin = 9;// MISO
+     gpio_read(self->gpio, &value, pin);
+     LOG("MISO = %X", value);
+     value = 0;
+     pin = 10;// MOSI
+     gpio_read(self->gpio, &value, pin);
+     LOG("MOSI = %X", value);
+     value = 0;
+     pin = 11;// CLK
+     gpio_read(self->gpio, &value, pin);
+     LOG("CLK = %X", value);
+     */
 }
 
 static void _end_com(SSD1306 *self) {

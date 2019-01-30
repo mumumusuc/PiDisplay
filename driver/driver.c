@@ -10,7 +10,7 @@
 #define LOG_TAG "DRIVER"
 
 // define gpio
-static void _gpio_begin(Gpio *driver) {
+static void _gpio_begin(Gpio *driver, Gpio *gpio) {
     DEFAULT_METHOD();
 }
 
@@ -189,8 +189,8 @@ inline void del_spi(void *self) {
     self = NULL;
 }
 
-inline void spi_begin(Spi *self) {
-    eval_vtbl(self, begin);
+inline void spi_begin(Spi *self, Gpio *gpio) {
+    eval_vtbl(self, begin, gpio);
 }
 
 inline void spi_init(Spi *self, const SpiInfo *info) {

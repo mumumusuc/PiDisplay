@@ -56,7 +56,7 @@ void del_i2c(void *);
 // end define i2c protected
 
 // define spi protected
-typedef void(*fpSpiBegin)(Spi *);
+typedef void(*fpSpiBegin)(Spi *, Gpio *);
 
 typedef void(*fpSpiInit)(Spi *, const SpiInfo *);
 

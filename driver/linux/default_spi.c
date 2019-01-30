@@ -18,9 +18,22 @@ struct _SpiPriv {
     int fd;
 };
 
-static void _begin(Spi *self) {
+static void _begin(Spi *self, Gpio *gpio) {
     LOG("%s", __func__);
-    LOG("%s end", __func__);
+    GpioInfo info = {
+            .pin = 7,    // CE1
+            .mode=GPIO_MODE_OUTPUT
+    };
+    gpio_init(gpio, &info);
+    info.pin = 8;   // CE0
+    gpio_init(gpio, &info);
+    info.mode = GPIO_MODE_ALT0;
+    info.pin = 9;   // MISO
+    gpio_init(gpio, &info);
+    info.pin = 10;  // MOSI
+    gpio_init(gpio, &info);
+    info.pin = 11;  // CLK
+    gpio_init(gpio, &info);
 }
 
 static void _init(Spi *self, const SpiInfo *info) {
@@ -62,7 +75,6 @@ static void _init(Spi *self, const SpiInfo *info) {
         ERROR("Can't get max speed hz");
         exit(errno);
     }
-    LOG("%s end", __func__);
 }
 
 static void _write(Spi *self, const uint8_t *buf, size_t len) {
@@ -77,7 +89,6 @@ static void _read(Spi *self, uint8_t *buf, size_t len) {
 static void _end(Spi *self) {
     LOG("%s", __func__);
     close(subclass(self, DefaultSpi)->priv->fd);
-    LOG("%s end", __func__);
 }
 
 static SpiVTbl _vtbl = {

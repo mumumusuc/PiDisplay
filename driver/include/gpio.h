@@ -14,8 +14,10 @@ extern "C" {
 
 #define GPIO_LOW            0x00
 #define GPIO_HIGH           0x01
+
 #define GPIO_MODE_INPUT     0x00
 #define GPIO_MODE_OUTPUT    0x01
+#define GPIO_MODE_ALT0      0x04
 
 typedef struct _Gpio Gpio;
 typedef struct _Gpio_VTbl GpioVTbl;

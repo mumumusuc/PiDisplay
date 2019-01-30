@@ -4,9 +4,11 @@ set(CMAKE_C_STANDARD 99)
 project(pi_display)
 
 
-set(CMAKE_BUILD_TYPE "Release")
+#set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_C_FLAGS_DEBUG "$ENV{CFLAGS} -O0 -Wall -g -ggdb")
 set(CMAKE_C_FLAGS_RELEASE "$ENV{CFLAGS} -O3 -Wall")
+
+message("Build type ${CMAKE_BUILD_TYPE}")
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     ADD_DEFINITIONS(-DDEBUG)

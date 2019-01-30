@@ -45,6 +45,7 @@ static void convert2(const uint8_t *src, uint8_t *dst, int w, int h) {
 
 //#include "display_.h"
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <math.h>
 #include <getopt.h>
 #include <opencv2/imgproc/imgproc_c.h>
@@ -59,15 +60,22 @@ static char driver[8] = "default";
 static char type[4] = "spi";
 static char *file = "BadApple.mp4";
 
+static void clean_up(int signo) {
+    LOG("%s", __func__);
+    if (display) {
+        //display_turn_off(display);
+        display_end(display);
+        delete(object(display));
+    }
+}
+
 API_BEFORE static void register_device() {
     LOG("%s", __func__);
 }
 
 API_AFTER static void unregister_devices() {
     LOG("%s", __func__);
-    if (display) {
-        delete(object(display));
-    }
+    clean_up(0);
 }
 
 static print_usage(const char *prog) {
@@ -131,11 +139,11 @@ int main(int argc, char *const argv[]) {
         ERROR();
         exit(-1);
     }
-
+    signal(SIGINT, clean_up);
     display_begin(display);
     display_reset(display);
     display_turn_on(display);
-    display_clear(display);
+    //display_clear(display);
     uint8_t *screen_buffer = (uint8_t *) calloc(1, sizeof(uint8_t) * 128 * 64);
 
     av_register_all();
@@ -245,8 +253,6 @@ int main(int argc, char *const argv[]) {
     sws_freeContext(pSwsCtx);
     av_packet_unref(&packet);
     free(screen_buffer);
-    //display_turn_off(display);
-    display_end(display);
     /*
     size_t width = 320;
     size_t height = 240;

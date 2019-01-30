@@ -11,7 +11,7 @@
 #undef  LOG_TAG
 #define LOG_TAG     "BCM_SPI"
 
-static void _begin(Spi *self) {
+static void _begin(Spi *self, Gpio *gpio) {
     LOG("%s", __func__);
     assert(bcm2835_init());
 }
