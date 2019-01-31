@@ -10,7 +10,7 @@
 #define LOG_TAG "DRIVER"
 
 // define gpio
-static void _gpio_begin(Gpio *driver, Gpio *gpio) {
+static void _gpio_begin(Gpio *driver) {
     DEFAULT_METHOD();
 }
 
@@ -144,7 +144,7 @@ inline void i2c_end(I2c *self) {
 // end define i2c
 
 // define spi
-static void _spi_begin(Spi *driver) {
+static void _spi_begin(Spi *driver, Gpio *gpio) {
     DEFAULT_METHOD();
 }
 

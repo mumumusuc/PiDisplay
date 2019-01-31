@@ -3,10 +3,29 @@
 //
 
 #include <string.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+#include <math.h>
+#include <getopt.h>
+#include "factory.h"
+
+#ifdef FFMPEG
+
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
+
+#endif
+
+#ifdef FREE_IMAGE
+
+#include "FreeImage.h"
+
+#endif
+
+#define API_BEFORE  __attribute__((constructor))
+#define API_AFTER   __attribute__((destructor))
 
 static void convert(uint8_t *src, uint8_t *dst, int w, int h) {
     size_t index = 0;
@@ -43,16 +62,6 @@ static void convert2(const uint8_t *src, uint8_t *dst, int w, int h) {
     }
 }
 
-//#include "display_.h"
-#include <sys/time.h>
-#include <sys/wait.h>
-#include <math.h>
-#include <getopt.h>
-#include <opencv2/imgproc/imgproc_c.h>
-#include "factory.h"
-
-#define API_BEFORE  __attribute__((constructor))
-#define API_AFTER   __attribute__((destructor))
 
 static Display *display = NULL;
 static char device[8] = "ssd1306";
@@ -123,15 +132,69 @@ static void parse_args(int argc, char *const argv[]) {
     }
 }
 
+/*
 static void draw_text(IplImage *src, const char *text, CvPoint origin, CvFont *font) {
     cvPutText(src, text, origin, font, cvScalarAll(255));
 }
-
+*/
 int main(int argc, char *const argv[]) {
     parse_args(argc, argv);
     char _device[32];
     sprintf(_device, "/%s/%s/%s", device, driver, type);
     LOG("%s", _device);
+    display = create_display(_device);
+    if (!display) {
+        ERROR();
+        exit(-1);
+    }
+    signal(SIGINT, clean_up);
+    display_begin(display);
+    display_reset(display);
+    display_turn_on(display);
+    display_clear(display);
+    DisplayInfo info;
+    display_get_info(display, &info);
+    LOG("%s : w = %d , h = %d , fmt = %d", info.vendor, info.width, info.height, info.pixel_format);
+    size_t size = sizeof(uint8_t) * info.width * info.height * info.pixel_format / 8;
+    uint8_t *screen_buffer = (uint8_t *) calloc(1, size);
+
+#ifdef FREE_IMAGE
+    FreeImage_Initialise(TRUE);
+    const char *imageFile = "test_2.png";
+    FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;
+    fif = FreeImage_GetFileType(imageFile, 0);
+    if (fif == FIF_UNKNOWN)
+        fif = FreeImage_GetFIFFromFilename(imageFile);
+    FIBITMAP *bmp = NULL;
+    if ((fif != FIF_UNKNOWN) && FreeImage_FIFSupportsReading(fif)) {
+        bmp = FreeImage_Load(fif, imageFile, PNG_DEFAULT);
+    }
+    if (!bmp) {
+        ERROR("Fail to Load Image!");
+        exit(1);
+    }
+    int width = FreeImage_GetWidth(bmp);
+    int height = FreeImage_GetHeight(bmp);
+    FIBITMAP *gray = FreeImage_ConvertToGreyscale(bmp);
+    FIBITMAP *dst = FreeImage_Rescale(gray, 128, 64, FILTER_BOX);
+    uint8_t *bits = FreeImage_GetBits(dst);
+
+    convert(bits, screen_buffer, info.width, info.height);
+#else
+    memset(screen_buffer,0xf0,size);
+#endif
+
+    display_update(display, screen_buffer);
+    free(screen_buffer);
+
+#ifdef FREE_IMAGE
+    FreeImage_Unload(bmp);
+    FreeImage_Unload(gray);
+    FreeImage_Unload(dst);
+    FreeImage_DeInitialise();
+#endif
+    /*
+
 
     display = create_display(_device);
 
