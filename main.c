@@ -67,7 +67,7 @@ static Display *display = NULL;
 static char device[8] = "ssd1306";
 static char driver[8] = "default";
 static char type[4] = "spi";
-static char *file = "BadApple.mp4";
+static char *file = "../BadApple.mp4";
 
 static void clean_up(int signo) {
     LOG("%s", __func__);
@@ -111,19 +111,15 @@ static void parse_args(int argc, char *const argv[]) {
         switch (result) {
             case 'D':
                 strcpy(device, optarg);
-                printf("-D %s.\n", device);
                 break;
             case 'd':
                 strcpy(driver, optarg);
-                printf("-d %s.\n", driver);
                 break;
             case 't':
                 strcpy(type, optarg);
-                printf("-t %s.\n", type);
                 break;
             case 'i':
                 file = optarg;
-                printf("-i %s.\n", file);
                 break;
             default:
                 print_usage(argv[0]);
@@ -137,6 +133,7 @@ static void draw_text(IplImage *src, const char *text, CvPoint origin, CvFont *f
     cvPutText(src, text, origin, font, cvScalarAll(255));
 }
 */
+
 int main(int argc, char *const argv[]) {
     parse_args(argc, argv);
     char _device[32];
@@ -154,8 +151,10 @@ int main(int argc, char *const argv[]) {
     display_clear(display);
     DisplayInfo info;
     display_get_info(display, &info);
-    LOG("%s : w = %d , h = %d , fmt = %d", info.vendor, info.width, info.height, info.pixel_format);
-    size_t size = sizeof(uint8_t) * info.width * info.height * info.pixel_format / 8;
+    int width = info.width;
+    int height = info.height;
+    LOG("%s : w = %d , h = %d , fmt = %d", info.vendor, width, height, info.pixel_format);
+    size_t size = sizeof(uint8_t) * width * height * info.pixel_format / 8;
     uint8_t *screen_buffer = (uint8_t *) calloc(1, size);
 
 #ifdef FREE_IMAGE
@@ -173,42 +172,12 @@ int main(int argc, char *const argv[]) {
         ERROR("Fail to Load Image!");
         exit(1);
     }
-    int width = FreeImage_GetWidth(bmp);
-    int height = FreeImage_GetHeight(bmp);
     FIBITMAP *gray = FreeImage_ConvertToGreyscale(bmp);
-    FIBITMAP *dst = FreeImage_Rescale(gray, 128, 64, FILTER_BOX);
+    FIBITMAP *dst = FreeImage_Rescale(gray, width, height, FILTER_BOX);
     uint8_t *bits = FreeImage_GetBits(dst);
-
-    convert(bits, screen_buffer, info.width, info.height);
-#else
-    memset(screen_buffer,0xf0,size);
-#endif
-
+    convert(bits, screen_buffer, width, height);
     display_update(display, screen_buffer);
-    free(screen_buffer);
-
-#ifdef FREE_IMAGE
-    FreeImage_Unload(bmp);
-    FreeImage_Unload(gray);
-    FreeImage_Unload(dst);
-    FreeImage_DeInitialise();
-#endif
-    /*
-
-
-    display = create_display(_device);
-
-    if (!display) {
-        ERROR();
-        exit(-1);
-    }
-    signal(SIGINT, clean_up);
-    display_begin(display);
-    display_reset(display);
-    display_turn_on(display);
-    //display_clear(display);
-    uint8_t *screen_buffer = (uint8_t *) calloc(1, sizeof(uint8_t) * 128 * 64);
-
+#elif defined(FFMPEG)
     av_register_all();
     AVFormatContext *pFmtCtx = NULL;
     if (avformat_open_input(&pFmtCtx, file, NULL, NULL) != 0) {
@@ -241,32 +210,22 @@ int main(int argc, char *const argv[]) {
     }
     AVFrame *pFrame = av_frame_alloc();
     AVFrame *pFrameG = av_frame_alloc();
-
     enum AVPixelFormat format = AV_PIX_FMT_GRAY8;
-
-    int width = 128;
-    int height = 64;
     int align = 1;
-
     float r = 1.0f / fmax(pCodecCtx->width / (float) width, pCodecCtx->height / (float) height);
     int w = (int) (pCodecCtx->width * r);
     int h = (int) (pCodecCtx->height * r);
     int offset = (width - w) / 2;
 
-    size_t size = sizeof(uint8_t) * av_image_get_buffer_size(format, width, height, align);
-    uint8_t *buffer = (uint8_t *) av_malloc(size);
+    size_t buffer_size = sizeof(uint8_t) * av_image_get_buffer_size(format, width, height, align);
+    uint8_t *buffer = (uint8_t *) av_malloc(buffer_size);
+    memset(buffer, 0, buffer_size);
     av_image_fill_arrays(pFrameG->data, pFrameG->linesize, buffer, format, width, height, align);
-    //pFrameG->format = format;
     int fps = pFmtCtx->streams[videoStream]->avg_frame_rate.num / pFmtCtx->streams[videoStream]->avg_frame_rate.den;
-    printf("size = %ld, linesize = %d, fps = %d.\n", size, pFrameG->linesize[0], fps);
     struct SwsContext *pSwsCtx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,
                                                 w + 2, h, format,
                                                 SWS_BILINEAR, NULL, NULL, NULL);
     AVPacket packet;
-
-    IplImage *src = cvCreateImage(cvSize(width, height), IPL_DEPTH_8U, 1);
-    src->imageData = pFrameG->data[0];
-
     float tt = 1000.0f / fps;
     struct timeval tBeginTime, t_middle_time, tEndTime;
     uint8_t *dst_data[AV_NUM_DATA_POINTERS] = {0};
@@ -274,47 +233,52 @@ int main(int argc, char *const argv[]) {
     for (int i = 0; i < AV_NUM_DATA_POINTERS; i++) {
         dst_data[i] = pFrameG->data[i] + offset;
         linesize[i] = pFrameG->linesize[i];
-        //printf("linesize[%d] = %d .\n", i, pFrameG->linesize[i]);
     }
-    bool flush = false;
-
-    char char_fps[4];
-    CvFont font = {};
-    cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 0.5, 0.5, 0, 1, 8);
-    int baseline;
-    CvSize t_size = cvSize(0, 0);
-    cvGetTextSize("00", &font, &t_size, &baseline);
-    CvPoint origin = cvPoint(0, t_size.height);
-    memset(src->imageData, 0, size);
     while (av_read_frame(pFmtCtx, &packet) >= 0) {
         if (packet.stream_index == videoStream) {
             gettimeofday(&tBeginTime, NULL);
             avcodec_send_packet(pCodecCtx, &packet);
-            if (flush = avcodec_receive_frame(pCodecCtx, pFrame) == 0) {
-                memset(src->imageData, 0, size / 6);
+            if (avcodec_receive_frame(pCodecCtx, pFrame) == 0) {
                 sws_scale(pSwsCtx, pFrame->data, pFrame->linesize, 0, pFrame->height, dst_data, linesize);
                 //cvAdaptiveThreshold(src, src, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 3, 0);
-                draw_text(src, char_fps, origin, &font);
-                convert(src->imageData, screen_buffer, width, height);
+                convert(pFrameG->data[0], screen_buffer, width, height);
                 display_update(display, screen_buffer);
                 gettimeofday(&t_middle_time, NULL);
                 float time = 1000000 * (t_middle_time.tv_sec - tBeginTime.tv_sec) +
                              (t_middle_time.tv_usec - tBeginTime.tv_usec);
                 float dt = tt - time / 1000;
-                if (dt > 0) delay(dt);
+                if (dt) delay(dt);
             }
             gettimeofday(&tEndTime, NULL);
             float fCostTime = 1000000 * (tEndTime.tv_sec - tBeginTime.tv_sec) + (tEndTime.tv_usec - tBeginTime.tv_usec);
+#ifdef OPENCV
             sprintf(char_fps, "%2.0f", 1000000 / fCostTime);
-            //LOG("%s fps", char_fps);
+#else
+            LOG("%02.0f fps", 1000000 / fCostTime);
+#endif
         }
     }
-
     avformat_close_input(&pFmtCtx);
     avcodec_close(pCodecCtx);
     av_frame_free(&pFrame);
     sws_freeContext(pSwsCtx);
     av_packet_unref(&packet);
+#else
+    memset(screen_buffer,0xf0,size);
+    display_update(display, screen_buffer);
+#endif
+
+    free(screen_buffer);
+
+#ifdef FREE_IMAGE
+    FreeImage_Unload(bmp);
+    FreeImage_Unload(gray);
+    FreeImage_Unload(dst);
+    FreeImage_DeInitialise();
+#endif
+    /*
+
+
     free(screen_buffer);
     /*
     size_t width = 320;
