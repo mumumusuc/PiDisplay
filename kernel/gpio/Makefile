@@ -10,7 +10,11 @@ all:
 clean:
 	make -C $(KERNEL) M=$(PWD)  clean
 install:
-	insmod gpiomem.ko
+	-rmmod gpiomem
+	-insmod gpiomem.ko
+	-mknod /dev/gpio c 232 0
+	-chmod 660 /dev/gpio
+	-chgrp pi /dev/gpio
 uninstall:
 	rmmod gpiomem
 test:

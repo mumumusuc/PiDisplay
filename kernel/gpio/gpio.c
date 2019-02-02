@@ -31,31 +31,26 @@ static int _open(struct inode *p, struct file *f) {
 }
 
 static int _read(struct file *f, char __user *u, size_t s, loff_t *l) {
-    printk(KERN_ALERT "[%s] \n", __func__);
     if (s < RW_SIZE)
         return -EFAULT;
-    int ret = copy_from_user(buffer, u, RW_SIZE);
-    if (ret)
+    if (copy_from_user(buffer, u, RW_SIZE))
         return -EFAULT;
-    const u8 pin = buffer[0];
-    buffer[1] = gpio_get_value(pin);
-    ret = copy_to_user(u, buffer, RW_SIZE);
-    if (ret)
+    buffer[1] = gpio_get_value(buffer[0]);
+    printk(KERN_ALERT "[%s] %d , %d , %d\n", __func__, buffer[0], buffer[1], s);
+    if (copy_to_user(u, buffer, RW_SIZE))
         return -EFAULT;
-    return OK;
+    return s;
 }
 
 static int _write(struct file *f, const char __user *u, size_t s, loff_t *l) {
-    printk(KERN_ALERT "[%s] \n", __func__);
     if (s < RW_SIZE)
         return -EFAULT;
-    int ret = copy_from_user(buffer, u, RW_SIZE);
-    if (ret)
+    if (copy_from_user(buffer, u, RW_SIZE))
         return -EFAULT;
-    const u8 pin = buffer[0];
-    const u8 lev = buffer[1];
-    gpio_set_value(pin, lev);
-    return OK;
+    printk(KERN_ALERT "[%s] %d , %d , %d\n", __func__, buffer[0], buffer[1], s);
+    gpio_set_value(buffer[0], buffer[1]);
+    // return wrote size, otherwise echo does not work.
+    return s;
 }
 
 static long _ioctl(struct file *f, unsigned int cmd, unsigned long arg) {
