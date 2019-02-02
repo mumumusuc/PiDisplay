@@ -22,6 +22,7 @@ add_subdirectory(device)
 add_subdirectory(driver)
 add_subdirectory(graphic)
 add_subdirectory(kernel/gpio)
+add_definitions(kernel/ds18b20)
 
 aux_source_directory(${CMAKE_SOURCE_DIR} SRC_FILES)
 link_libraries(device m)

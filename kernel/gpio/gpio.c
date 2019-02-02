@@ -16,7 +16,7 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
-#define RW_SIZE     (2)
+#define RW_SIZE     (3)
 
 static struct cdev *_cdev;
 static dev_t dev_num;
@@ -35,8 +35,13 @@ static int _read(struct file *f, char __user *u, size_t s, loff_t *l) {
         return -EFAULT;
     if (copy_from_user(buffer, u, RW_SIZE))
         return -EFAULT;
-    buffer[1] = gpio_get_value(buffer[0]);
-    printk(KERN_ALERT "[%s] %d , %d , %d\n", __func__, buffer[0], buffer[1], s);
+    u8 mode = 0;
+    mode = 0x01 & buffer[0];
+    if (mode == 0)
+        buffer[2] = gpio_get_value(buffer[1]);
+    else
+        buffer[2] = gpio_get_mode(buffer[1]);
+    printk(KERN_ALERT "[%s] %d , %d , %d\n", __func__, buffer[0], buffer[1], buffer[2]);
     if (copy_to_user(u, buffer, RW_SIZE))
         return -EFAULT;
     return s;
@@ -47,8 +52,13 @@ static int _write(struct file *f, const char __user *u, size_t s, loff_t *l) {
         return -EFAULT;
     if (copy_from_user(buffer, u, RW_SIZE))
         return -EFAULT;
-    printk(KERN_ALERT "[%s] %d , %d , %d\n", __func__, buffer[0], buffer[1], s);
-    gpio_set_value(buffer[0], buffer[1]);
+    u8 mode = 0;
+    mode = 0x01 & buffer[0];
+    if (mode == 0)
+        gpio_set_value(buffer[1], buffer[2] & 0x01);
+    else
+        gpio_set_mode(buffer[1], buffer[2] & 0x07);
+    printk(KERN_ALERT "[%s] %d , %d , %d\n", __func__, buffer[0], buffer[1], buffer[2]);
     // return wrote size, otherwise echo does not work.
     return s;
 }

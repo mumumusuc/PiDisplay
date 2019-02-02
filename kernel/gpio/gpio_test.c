@@ -39,6 +39,7 @@ int main(int argc, char *argv[]) {
     }
     printf("read mode : pin = %d , mode = %d \n", info.pin, info.mode);
 
+    uint8_t buffer[] = {0, info.pin, 0};
     size_t cnt = 5;
     while (cnt--) {/*
         info.value = GPIO_HIGH;
@@ -53,11 +54,11 @@ int main(int argc, char *argv[]) {
             exit(-3);
         }
         usleep(500 * 1000);*/
-        info.value = GPIO_HIGH;
-        write(fd, &info, 2);
+        buffer[2] = GPIO_HIGH;
+        write(fd, buffer, 3);
         usleep(500 * 1000);
-        info.value = GPIO_LOW;
-        write(fd, &info, 2);
+        buffer[2] = GPIO_LOW;
+        write(fd, buffer, 3);
         usleep(500 * 1000);
     }
     return 0;
