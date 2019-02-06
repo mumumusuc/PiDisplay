@@ -30,12 +30,13 @@
 #define GPIO_IOC_SET_VALUE  _IOW(IOC_MAGIC,2,void*)
 #define GPIO_IOC_GET_VALUE  _IOR(IOC_MAGIC,3,void*)
 
-const char *node = "/dev/gpio";
+const char *gpio_node = "/dev/gpio";
 
 typedef struct gpio_info {
     unsigned char pin;
     union {
         unsigned char mode;
+        // if mode equals OUTPUT , value is meaningless.
         unsigned char value;
     };
 } gpio_info_t;

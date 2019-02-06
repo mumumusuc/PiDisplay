@@ -3,6 +3,7 @@
 //
 
 #include "bcm2835_gpio.h"
+#include <asm/types.h>
 #include <asm/io.h>
 
 // define bcm_host apis
@@ -16,12 +17,12 @@
 #define PERIPHERAL_SIZE             0x01000000
 
 // define bcm registers
-#define REG_SIZE            (1)//sizeof(u32)
-#define GPIO_BASE_ADDR      (PERIPHERAL_ADDRESS + 0x200000/REG_SIZE)
-#define GPIO_FSEL_ADDR      (GPIO_BASE_ADDR + 0x0000/REG_SIZE)
-#define GPIO_SET_ADDR       (GPIO_BASE_ADDR + 0x001C/REG_SIZE)
-#define GPIO_CLR_ADDR       (GPIO_BASE_ADDR + 0x0028/REG_SIZE)
-#define GPIO_LEV_ADDR       (GPIO_BASE_ADDR + 0x0034/REG_SIZE)
+#define REG_SIZE            sizeof(u32)
+#define GPIO_BASE_ADDR      (PERIPHERAL_ADDRESS + 0x200000)
+#define GPIO_FSEL_ADDR      (GPIO_BASE_ADDR + 0x0000)
+#define GPIO_SET_ADDR       (GPIO_BASE_ADDR + 0x001C)
+#define GPIO_CLR_ADDR       (GPIO_BASE_ADDR + 0x0028)
+#define GPIO_LEV_ADDR       (GPIO_BASE_ADDR + 0x0034)
 
 #define MAP_FAILED ((u32 *) 0)
 static volatile u32 *bcm_gpio_base = MAP_FAILED;
@@ -53,7 +54,7 @@ inline int gpio_init(void) {
     if (bcm_gpio_base != MAP_FAILED) {
         return -1;
     }
-    bcm_gpio_base = (volatile u32 *) ioremap(GPIO_BASE_ADDR, REG_SIZE);
+    bcm_gpio_base = (volatile u32 *) ioremap(GPIO_BASE_ADDR, REG_SIZE * 1);
     bcm_gpio_fsel = (volatile u32 *) ioremap(GPIO_FSEL_ADDR, REG_SIZE * 6);
     bcm_gpio_set = (volatile u32 *) ioremap(GPIO_SET_ADDR, REG_SIZE * 2);
     bcm_gpio_clr = (volatile u32 *) ioremap(GPIO_CLR_ADDR, REG_SIZE * 2);

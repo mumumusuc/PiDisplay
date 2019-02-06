@@ -2,18 +2,19 @@
 // Created by mumumusuc on 19-1-31.
 //
 
-#include "gpio.h"
+#include "gpio_test.h"
+//#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 #include <fcntl.h>
-#include <zconf.h>
+#include <unistd.h>
 #include <sys/ioctl.h>
 
 
 int main(int argc, char *argv[]) {
-    int fd = open(node, O_RDWR);
+    int fd = open(gpio_node, O_RDWR);
     if (fd < 0) {
         perror("file open error.\n");
         exit(-1);

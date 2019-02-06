@@ -1,0 +1,209 @@
+arm-linux-gnueabihf-gcc -o gpio_test gpio_test.c -std=gnu99 -nostdinc                     \
+-I/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/linux \
+-I/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf  \
+-I/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include \
+-I/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/lib/gcc/arm-linux-gnueabihf/4.8.3/include
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:75:0,
+                 from gpio_test.c:8:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/libio.h:332:3: 错误： 未知的类型名‘size_t’
+   size_t __pad5;
+   ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/libio.h:336:67: 错误： ‘size_t’未声明(不在函数内)
+   char _unused2[15 * sizeof (int) - 4 * sizeof (void *) - sizeof (size_t)];
+                                                                   ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/libio.h:364:62: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ typedef __ssize_t __io_read_fn (void *__cookie, char *__buf, size_t __nbytes);
+                                                              ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/libio.h:373:6: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+      size_t __n);
+      ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/libio.h:495:19: 错误： expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘_IO_sgetn’
+ extern _IO_size_t _IO_sgetn (_IO_FILE *, void *, _IO_size_t);
+                   ^
+In file included from gpio_test.c:8:0:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:316:35: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern FILE *fmemopen (void *__s, size_t __len, __const char *__modes)
+                                   ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:322:47: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern FILE *open_memstream (char **__bufloc, size_t *__sizeloc) __THROW __wur;
+                                               ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:334:20: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+       int __modes, size_t __n) __THROW;
+                    ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:341:10: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+          size_t __size) __THROW;
+          ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:383:44: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern int snprintf (char *__restrict __s, size_t __maxlen,
+                                            ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:387:45: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern int vsnprintf (char *__restrict __s, size_t __maxlen,
+                                             ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:659:11: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+           size_t *__restrict __n, int __delimiter,
+           ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:662:9: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+         size_t *__restrict __n, int __delimiter,
+         ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:672:8: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+        size_t *__restrict __n,
+        ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:702:15: 错误： expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘fread’
+ extern size_t fread (void *__restrict __ptr, size_t __size,
+               ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:708:15: 错误： expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘fwrite’
+ extern size_t fwrite (__const void *__restrict __ptr, size_t __size,
+               ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:730:15: 错误： expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘fread_unlocked’
+ extern size_t fread_unlocked (void *__restrict __ptr, size_t __size,
+               ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdio.h:732:15: 错误： expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘fwrite_unlocked’
+ extern size_t fwrite_unlocked (__const void *__restrict __ptr, size_t __size,
+               ^
+In file included from gpio_test.c:9:0:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:140:15: 错误： expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘__ctype_get_mb_cur_max’
+ extern size_t __ctype_get_mb_cur_max (void) __THROW __wur;
+               ^
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/select.h:46:0,
+                 from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/types.h:223,
+                 from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:320,
+                 from gpio_test.c:9:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/bits/time.h:75:8: 错误： ‘struct timeval’重定义
+ struct timeval
+        ^
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/types.h:136:0,
+                 from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:320,
+                 from gpio_test.c:9:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/linux/time.h:15:8: 附注： 原先在这里定义
+ struct timeval {
+        ^
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/types.h:223:0,
+                 from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:320,
+                 from gpio_test.c:9:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/select.h:93:0: 警告： “FD_SET”重定义 [enabled by default]
+ #define FD_SET(fd, fdsetp) __FD_SET (fd, fdsetp)
+ ^
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/types.h:136:0,
+                 from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:320,
+                 from gpio_test.c:9:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/linux/time.h:29:0: 附注： 这是先前定义的位置
+ #define FD_SET(fd,fdsetp) __FD_SET(fd,fdsetp)
+ ^
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/types.h:223:0,
+                 from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:320,
+                 from gpio_test.c:9:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/select.h:94:0: 警告： “FD_CLR”重定义 [enabled by default]
+ #define FD_CLR(fd, fdsetp) __FD_CLR (fd, fdsetp)
+ ^
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/types.h:136:0,
+                 from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:320,
+                 from gpio_test.c:9:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/linux/time.h:30:0: 附注： 这是先前定义的位置
+ #define FD_CLR(fd,fdsetp) __FD_CLR(fd,fdsetp)
+ ^
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/types.h:223:0,
+                 from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:320,
+                 from gpio_test.c:9:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/select.h:95:0: 警告： “FD_ISSET”重定义 [enabled by default]
+ #define FD_ISSET(fd, fdsetp) __FD_ISSET (fd, fdsetp)
+ ^
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/types.h:136:0,
+                 from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:320,
+                 from gpio_test.c:9:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/linux/time.h:31:0: 附注： 这是先前定义的位置
+ #define FD_ISSET(fd,fdsetp) __FD_ISSET(fd,fdsetp)
+ ^
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/types.h:223:0,
+                 from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:320,
+                 from gpio_test.c:9:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/select.h:96:0: 警告： “FD_ZERO”重定义 [enabled by default]
+ #define FD_ZERO(fdsetp)  __FD_ZERO (fdsetp)
+ ^
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/arm-linux-gnueabihf/sys/types.h:136:0,
+                 from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:320,
+                 from gpio_test.c:9:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/linux/time.h:32:0: 附注： 这是先前定义的位置
+ #define FD_ZERO(fdsetp)  __FD_ZERO(fdsetp)
+ ^
+In file included from gpio_test.c:9:0:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:337:4: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+    size_t __statelen) __THROW __nonnull ((2));
+    ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:367:4: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+    size_t __statelen,
+    ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:471:22: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern void *malloc (size_t __size) __THROW __attribute_malloc__ __wur;
+                      ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:473:22: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern void *calloc (size_t __nmemb, size_t __size)
+                      ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:473:38: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern void *calloc (size_t __nmemb, size_t __size)
+                                      ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:485:36: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern void *realloc (void *__ptr, size_t __size)
+                                    ^
+In file included from /home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:497:0,
+                 from gpio_test.c:9:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/alloca.h:33:22: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern void *alloca (size_t __size) __THROW;
+                      ^
+In file included from gpio_test.c:9:0:
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:503:22: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern void *valloc (size_t __size) __THROW __attribute_malloc__ __wur;
+                      ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:508:45: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern int posix_memalign (void **__memptr, size_t __alignment, size_t __size)
+                                             ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:508:65: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern int posix_memalign (void **__memptr, size_t __alignment, size_t __size)
+                                                                 ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:756:9: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+         size_t __nmemb, size_t __size, __compar_fn_t __compar)
+         ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:756:25: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+         size_t __nmemb, size_t __size, __compar_fn_t __compar)
+                         ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:761:34: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern void qsort (void *__base, size_t __nmemb, size_t __size,
+                                  ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:761:50: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern void qsort (void *__base, size_t __nmemb, size_t __size,
+                                                  ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:840:6: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+      size_t __len) __THROW __nonnull ((3, 4, 5));
+      ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:843:6: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+      size_t __len) __THROW __nonnull ((3, 4, 5));
+      ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:847:31: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+       char *__restrict __buf, size_t __len)
+                               ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:851:31: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+       char *__restrict __buf, size_t __len)
+                               ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:860:38: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+ extern int mblen (__const char *__s, size_t __n) __THROW __wur;
+                                      ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:863:20: 错误： 未知的类型名‘wchar_t’
+ extern int mbtowc (wchar_t *__restrict __pwc,
+                    ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:864:36: 错误： expected declaration specifiers or ‘...’ before ‘size_t’
+      __const char *__restrict __s, size_t __n) __THROW __wur;
+                                    ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:867:31: 错误： 未知的类型名‘wchar_t’
+ extern int wctomb (char *__s, wchar_t __wchar) __THROW __wur;
+                               ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:871:15: 错误： expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘mbstowcs’
+ extern size_t mbstowcs (wchar_t *__restrict  __pwcs,
+               ^
+/home/mumumusuc/raspberry/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/arm-linux-gnueabihf/libc/usr/include/stdlib.h:874:15: 错误： expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘wcstombs’
+ extern size_t wcstombs (char *__restrict __s,
+               ^
+gpio_test.c:12:19: 致命错误： zconf.h：没有那个文件或目录
+ #include <zconf.h>
+                   ^
+编译中断。
+Makefile:23: recipe for target 'test' failed
+make: *** [test] Error 1

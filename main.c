@@ -148,7 +148,7 @@ int main(int argc, char *const argv[]) {
     display_begin(display);
     display_reset(display);
     display_turn_on(display);
-    display_clear(display);
+    //display_clear(display);
     DisplayInfo info;
     display_get_info(display, &info);
     int width = info.width;
@@ -159,7 +159,7 @@ int main(int argc, char *const argv[]) {
 
 #ifdef FREE_IMAGE
     FreeImage_Initialise(TRUE);
-    const char *imageFile = "test_2.png";
+    const char *imageFile = file;
     FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;
     fif = FreeImage_GetFileType(imageFile, 0);
     if (fif == FIF_UNKNOWN)

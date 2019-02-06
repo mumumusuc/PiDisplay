@@ -14,7 +14,7 @@
 #define SPI_CS_1        1
 #define SPI_DC          22
 #define SPI_RST         27
-#define SPI_MAX_SPEED   8000000
+#define SPI_MAX_SPEED   15600000
 
 static void _begin_com(SSD1306 *self) {
     LOG("%s", __func__);
