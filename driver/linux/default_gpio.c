@@ -163,7 +163,7 @@ static void _read(Gpio *self, uint8_t *buff, size_t pin) {
     mask = (0x00000001 << _pin);
     uint8_t level = 0xFF & ((value & mask) >> _pin);
 
-    *buff = ((mode & 0x0F) << 4) | (level & 0x0F);
+    *buff = (level & 0x0F);
 }
 
 static void _end(Gpio *self) {

@@ -13,7 +13,7 @@ extern "C" {
 
 #define DEVICE_NUM  4
 
-static const char *device_type[DEVICE_NUM] = {
+const char *device_type[DEVICE_NUM] = {
         "/ssd1306/bcm/i2c",
         "/ssd1306/bcm/spi",
         "/ssd1306/default/i2c",

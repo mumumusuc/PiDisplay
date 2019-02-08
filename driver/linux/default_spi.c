@@ -12,7 +12,7 @@
 #undef  LOG_TAG
 #define LOG_TAG     "DEFAULT_SPI"
 
-static const char *_node[2] = {"/dev/spidev0.0", "/dev/spidev0.1"};
+static const char *_node[2] = {"/dev/ssd_spi0.0", "/dev/ssd_spi0.1"};
 static struct spi_ioc_transfer _spi_data;
 
 struct _SpiPriv {
@@ -49,7 +49,6 @@ static void _init(Spi *self, const SpiInfo *info) {
     _spi_data.delay_usecs = 0;
     _spi_data.speed_hz = speed;
     _spi_data.bits_per_word = bit_per_word;
-    _spi_data.tx_nbits = SPI_TX_QUAD;
     int _fd = open(_node[channel], O_RDWR);
     spi->priv->fd = _fd;
     if (_fd < 0) {
@@ -84,10 +83,10 @@ static void _init(Spi *self, const SpiInfo *info) {
 }
 
 static void _write(Spi *self, const uint8_t *buf, size_t len) {
-    //write(subclass(self, DefaultSpi)->priv->fd, buf, len);
-    _spi_data.tx_buf = (unsigned long) buf;
-    _spi_data.len = len;
-    ioctl(subclass(self, DefaultSpi)->priv->fd, SPI_IOC_MESSAGE(1), &_spi_data);
+    write(subclass(self, DefaultSpi)->priv->fd, buf, len);
+    //_spi_data.tx_buf = (unsigned long) buf;
+    //_spi_data.len = len;
+    //ioctl(subclass(self, DefaultSpi)->priv->fd, SPI_IOC_MESSAGE(1), &_spi_data);
 }
 
 static void _read(Spi *self, uint8_t *buf, size_t len) {
