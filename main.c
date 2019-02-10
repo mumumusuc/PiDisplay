@@ -137,51 +137,6 @@ static void draw_text(IplImage *src, const char *text, CvPoint origin, CvFont *f
 */
 
 int main(int argc, char *const argv[]) {
-    const uint8_t echo = 20;
-    const uint8_t trig = 21;
-    GpioInfo gpio_info = {
-            .pin = trig,
-            .mode = GPIO_MODE_OUTPUT,
-    };
-    Gpio *gpio = superclass(new_default_gpio(), Gpio);
-    gpio_begin(gpio);
-    gpio_init(gpio, &gpio_info);
-    gpio_info.pin = echo;
-    gpio_info.mode = GPIO_MODE_INPUT;
-    gpio_init(gpio, &gpio_info);
-
-    uint8_t lev = 0;
-    struct timeval t_begin, t_end;
-    float time = 0;
-    gpio_write(gpio, &trig, 0);
-    while (1) {
-        gpio_write(gpio, &trig, 1);
-        usleep(20);
-        gpio_write(gpio, &trig, 0);
-        gpio_read(gpio, &lev, echo);
-        while (lev == 0) {
-            gpio_read(gpio, &lev, echo);
-            //printf("echo read = %d.\n", lev);
-            //usleep(1);
-        }
-        gettimeofday(&t_begin, NULL);
-        gpio_read(gpio, &lev, echo);
-        while (lev == 1) {
-            gpio_read(gpio, &lev, echo);
-            //printf("echo read = %d.\n", lev);
-            //usleep(1);
-        }
-        gettimeofday(&t_end, NULL);
-        time = 1000000 * (t_end.tv_sec - t_begin.tv_sec) + (t_end.tv_usec - t_begin.tv_usec);
-        time /= 2000; // 0.5ms
-        printf("echo retval = %.2f mm.\n", time * 340);
-        sleep(1);
-    }
-    gpio_info.pin = trig;
-    gpio_info.mode = GPIO_MODE_INPUT;
-    gpio_init(gpio, &gpio_info);
-    gpio_end(gpio);
-
     parse_args(argc, argv);
     char _device[32];
     sprintf(_device, "/%s/%s/%s", device, driver, type);

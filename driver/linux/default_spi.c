@@ -12,7 +12,7 @@
 #undef  LOG_TAG
 #define LOG_TAG     "DEFAULT_SPI"
 
-static const char *_node[2] = {"/dev/ssd_spi0.0", "/dev/ssd_spi0.1"};
+static const char *_node[2] = {"/dev/spidev0.0", "/dev/spidev0.1"};
 static struct spi_ioc_transfer _spi_data;
 
 struct _SpiPriv {
