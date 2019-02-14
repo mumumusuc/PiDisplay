@@ -5,187 +5,220 @@
 #include <linux/gpio.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
-#include "ssd1306_dev.h"
+#include "ssd1306.h"
 
 // private
-static void set_render_mode(display_t *dev, uint8_t mode) {
-    dev->write_cmd(dev, CMD_ADDR_MODE);
-    dev->write_cmd(dev, mode);
+static void set_render_mode(struct display *dev, uint8_t mode) {
+    dev->interface.write_cmd(dev, CMD_ADDR_MODE);
+    dev->interface.write_cmd(dev, mode);
 }
 
-static void set_range(display_t *dev, uint8_t start_page, uint8_t end_page, uint8_t start_col, uint8_t end_col) {
-    dev->write_cmd(dev, CMD_ADDR_PAGE_RANGE);
-    dev->write_cmd(dev, start_page);
-    dev->write_cmd(dev, end_page);
-    dev->write_cmd(dev, CMD_ADDR_COL_RANGE);
-    dev->write_cmd(dev, start_col);
-    dev->write_cmd(dev, end_col);
+static void set_range(struct display *dev, uint8_t start_page, uint8_t end_page, uint8_t start_col, uint8_t end_col) {
+    dev->interface.write_cmd(dev, CMD_ADDR_PAGE_RANGE);
+    dev->interface.write_cmd(dev, start_page);
+    dev->interface.write_cmd(dev, end_page);
+    dev->interface.write_cmd(dev, CMD_ADDR_COL_RANGE);
+    dev->interface.write_cmd(dev, start_col);
+    dev->interface.write_cmd(dev, end_col);
 }
 
 /*
-static void set_pos(display_t *dev, uint8_t page, uint8_t col) {
-    dev->write_cmd(dev, CMD_ADDR_PAGE_START_MASK | page);
-    dev->write_cmd(dev, CMD_ADDR_COL_START_LOW_MASK | (col & 0x0F));
-    dev->write_cmd(dev, CMD_ADDR_COL_START_HIGH_MASK | ((col & 0xF0) >> 4));
+static void set_pos(struct display *dev, uint8_t page, uint8_t col) {
+    dev->interface.write_cmd(dev, CMD_ADDR_PAGE_START_MASK | page);
+    dev->interface.write_cmd(dev, CMD_ADDR_COL_START_LOW_MASK | (col & 0x0F));
+    dev->interface.write_cmd(dev, CMD_ADDR_COL_START_HIGH_MASK | ((col & 0xF0) >> 4));
 }
 */
-static void set_contrast(display_t *dev, uint8_t level) {
-    dev->write_cmd(dev, CMD_DISPLAY_CONTRAST);
-    dev->write_cmd(dev, level);
+static void set_contrast(struct display *dev, uint8_t level) {
+    dev->interface.write_cmd(dev, CMD_DISPLAY_CONTRAST);
+    dev->interface.write_cmd(dev, level);
 }
 
-static void set_voltage(display_t *dev, uint8_t voltage) {
-    dev->write_cmd(dev, CMD_POWER_VOLTAGE);
-    dev->write_cmd(dev, voltage);
+static void set_voltage(struct display *dev, uint8_t voltage) {
+    dev->interface.write_cmd(dev, CMD_POWER_VOLTAGE);
+    dev->interface.write_cmd(dev, voltage);
 
 }
 
-static void set_ignore_ram(display_t *dev, uint8_t flag) {
+static void set_ignore_ram(struct display *dev, uint8_t flag) {
     if (flag) {
-        dev->write_cmd(dev, CMD_DISPLAY_ALL);
+        dev->interface.write_cmd(dev, CMD_DISPLAY_ALL);
     } else {
-        dev->write_cmd(dev, CMD_DISPLAY_RAM);
+        dev->interface.write_cmd(dev, CMD_DISPLAY_RAM);
     }
 }
 
-static void set_reverse(display_t *dev, uint8_t h, uint8_t v) {
+static void set_reverse(struct display *dev, uint8_t h, uint8_t v) {
     if (v) {
         h = h ? 0 : 1;
-        dev->write_cmd(dev, CMD_HARD_SCAN_DIRECT_INVERSE);
+        dev->interface.write_cmd(dev, CMD_HARD_SCAN_DIRECT_INVERSE);
     } else {
-        dev->write_cmd(dev, CMD_HARD_SCAN_DIRECT_NORMAL);
+        dev->interface.write_cmd(dev, CMD_HARD_SCAN_DIRECT_NORMAL);
     }
     if (h) {
-        dev->write_cmd(dev, CMD_HARD_MAP_COL_127);
+        dev->interface.write_cmd(dev, CMD_HARD_MAP_COL_127);
     } else {
-        dev->write_cmd(dev, CMD_HARD_MAP_COL_0);
+        dev->interface.write_cmd(dev, CMD_HARD_MAP_COL_0);
     }
 }
 
-static void set_mapping(display_t *dev, uint8_t start_line, uint8_t offset, uint8_t rows) {
-    dev->write_cmd(dev, CMD_HARD_START_LINE_MASK | start_line);
-    dev->write_cmd(dev, CMD_HARD_VERTICAL_OFFSET);
-    dev->write_cmd(dev, offset);
-    dev->write_cmd(dev, CMD_HARD_MUX);
-    dev->write_cmd(dev, rows - 1);
+static void set_mapping(struct display *dev, uint8_t start_line, uint8_t offset, uint8_t rows) {
+    dev->interface.write_cmd(dev, CMD_HARD_START_LINE_MASK | start_line);
+    dev->interface.write_cmd(dev, CMD_HARD_VERTICAL_OFFSET);
+    dev->interface.write_cmd(dev, offset);
+    dev->interface.write_cmd(dev, CMD_HARD_MUX);
+    dev->interface.write_cmd(dev, rows - 1);
 }
 
-static void set_point_invert(display_t *dev, uint8_t flag) {
+static void set_point_invert(struct display *dev, uint8_t flag) {
     if (flag) {
-        dev->write_cmd(dev, CMD_DISPLAY_INVERSE);
+        dev->interface.write_cmd(dev, CMD_DISPLAY_INVERSE);
     } else {
-        dev->write_cmd(dev, CMD_DISPLAY_NORMAL);
+        dev->interface.write_cmd(dev, CMD_DISPLAY_NORMAL);
     }
 }
 
-static void set_frequency(display_t *dev, uint8_t rate, uint8_t div) {
-    dev->write_cmd(dev, CMD_TIME_CLOCK);
-    dev->write_cmd(dev, ((div - 1) & 0x0F) | ((rate & 0x0F) << 4));
+static void set_frequency(struct display *dev, uint8_t rate, uint8_t div) {
+    dev->interface.write_cmd(dev, CMD_TIME_CLOCK);
+    dev->interface.write_cmd(dev, ((div - 1) & 0x0F) | ((rate & 0x0F) << 4));
 }
 
-static void set_period_pre_charge(display_t *dev, uint8_t phase1, uint8_t phase2) {
-    dev->write_cmd(dev, CMD_POWER_PRECHARGE);
-    dev->write_cmd(dev, ((phase2 & 0x0F) << 4) | (phase1 & 0x0F));
+static void set_period_pre_charge(struct display *dev, uint8_t phase1, uint8_t phase2) {
+    dev->interface.write_cmd(dev, CMD_POWER_PRECHARGE);
+    dev->interface.write_cmd(dev, ((phase2 & 0x0F) << 4) | (phase1 & 0x0F));
 }
 
-static void set_graphic_zoom(display_t *dev, uint8_t flag) {
-    dev->write_cmd(dev, CMD_GRAPHIC_ZOOM);
+static void set_graphic_zoom(struct display *dev, uint8_t flag) {
+    dev->interface.write_cmd(dev, CMD_GRAPHIC_ZOOM);
     flag = flag ? ZOOM_ON : ZOOM_OFF;
-    dev->write_cmd(dev, flag);
+    dev->interface.write_cmd(dev, flag);
 }
 
-static void set_graphic_fade(display_t *dev, uint8_t mode, uint8_t frame) {
-    dev->write_cmd(dev, CMD_GRAPHIC_FADE);
-    dev->write_cmd(dev, mode | frame);
+static void set_graphic_fade(struct display *dev, uint8_t mode, uint8_t frame) {
+    dev->interface.write_cmd(dev, CMD_GRAPHIC_FADE);
+    dev->interface.write_cmd(dev, mode | frame);
 }
 
 /*
-static void set_graphic_scroll_H(display_t *dev, uint8_t direct, uint8_t start_page, uint8_t end_page, uint8_t frame) {
-    dev->write_cmd(dev, direct);
-    dev->write_cmd(dev, 0x00);
-    dev->write_cmd(dev, start_page);
-    dev->write_cmd(dev, frame);
-    dev->write_cmd(dev, end_page);
-    dev->write_cmd(dev, 0x00);
-    dev->write_cmd(dev, 0xFF);
+static void set_graphic_scroll_H(struct display *dev, uint8_t direct, uint8_t start_page, uint8_t end_page, uint8_t frame) {
+    dev->interface.write_cmd(dev, direct);
+    dev->interface.write_cmd(dev, 0x00);
+    dev->interface.write_cmd(dev, start_page);
+    dev->interface.write_cmd(dev, frame);
+    dev->interface.write_cmd(dev, end_page);
+    dev->interface.write_cmd(dev, 0x00);
+    dev->interface.write_cmd(dev, 0xFF);
 }
 
 static void
-set_graphic_scroll_HV(display_t *dev, uint8_t direct, uint8_t start_page, uint8_t end_page, uint8_t frame,
+set_graphic_scroll_HV(struct display *dev, uint8_t direct, uint8_t start_page, uint8_t end_page, uint8_t frame,
                       uint8_t offset) {
-    dev->write_cmd(dev, direct);
-    dev->write_cmd(dev, 0x00);
-    dev->write_cmd(dev, start_page);
-    dev->write_cmd(dev, frame);
-    dev->write_cmd(dev, end_page);
-    dev->write_cmd(dev, offset);
+    dev->interface.write_cmd(dev, direct);
+    dev->interface.write_cmd(dev, 0x00);
+    dev->interface.write_cmd(dev, start_page);
+    dev->interface.write_cmd(dev, frame);
+    dev->interface.write_cmd(dev, end_page);
+    dev->interface.write_cmd(dev, offset);
 }
 
-static void set_graphic_scroll_range_V(display_t *dev, uint8_t fix_rows, uint8_t scroll_rows) {
-    dev->write_cmd(dev, CMD_SCROLL_DOWN_AREA);
-    dev->write_cmd(dev, fix_rows);
-    dev->write_cmd(dev, scroll_rows);
+static void set_graphic_scroll_range_V(struct display *dev, uint8_t fix_rows, uint8_t scroll_rows) {
+    dev->interface.write_cmd(dev, CMD_SCROLL_DOWN_AREA);
+    dev->interface.write_cmd(dev, fix_rows);
+    dev->interface.write_cmd(dev, scroll_rows);
 }
 
-static void set_graphic_scroll_enable(display_t *dev) {
-    dev->write_cmd(dev, CMD_SCROLL_ENABLE);
+static void set_graphic_scroll_enable(struct display *dev) {
+    dev->interface.write_cmd(dev, CMD_SCROLL_ENABLE);
 }
 */
-static void set_graphic_scroll_disable(display_t *dev) {
-    dev->write_cmd(dev, CMD_SCROLL_DISABLE);
+static void set_graphic_scroll_disable(struct display *dev) {
+    dev->interface.write_cmd(dev, CMD_SCROLL_DISABLE);
 }
 
-static void set_pin_config(display_t *dev, uint8_t alternative, uint8_t remap) {
+static void set_pin_config(struct display *dev, uint8_t alternative, uint8_t remap) {
     uint8_t cmd = 0x02;
     cmd |= alternative ? 0x10 : 0x00;
     cmd |= remap ? 0x20 : 0x00;
-    dev->write_cmd(dev, CMD_HARD_COM_CONFIG);
-    dev->write_cmd(dev, cmd);
+    dev->interface.write_cmd(dev, CMD_HARD_COM_CONFIG);
+    dev->interface.write_cmd(dev, cmd);
 }
 
 static void
-update_screen_range(display_t *dev, const uint8_t *data, uint8_t start_page, uint8_t end_page, uint8_t start_col,
+update_screen_range(struct display *dev, const uint8_t *data, uint8_t start_page, uint8_t end_page, uint8_t start_col,
                     uint8_t end_col) {
     uint8_t r, c;
     set_range(dev, start_page, end_page, start_col, end_col);
     for (r = start_page; r <= end_page; r++)
         for (c = start_col; c <= end_col; c++) {
-            dev->write_data(dev, *(data + SCREEN_COLUMNS * r + c));
+            dev->interface.write_data(dev, *(data + SCREEN_COLUMNS * r + c));
         }
 }
 
-static void update_screen(display_t *dev, const uint8_t *data, size_t size) {
+static void update_screen(struct display *dev, const u8 *data, size_t size) {
     set_render_mode(dev, MODE_HORIZONTAL);
-    if (dev->write_data_buffer) {
+    if (dev->interface.write_data_buffer) {
         set_range(dev, 0, 7, 0, 127);
-        dev->write_data_buffer(dev, data, size);
-        return;
+        dev->interface.write_data_buffer(dev, data, size);
     } else {
         update_screen_range(dev, data, 0, 7, 0, 127);
     }
 }
 
 // end private
-int display_init(display_t *dev) {
-    gpio_request_one(dev->gpio_reset, GPIOF_OUT_INIT_LOW, "ssd1306_reset");
-    if (!dev->screen) {
-        dev->screen = kmalloc(1024, GFP_KERNEL);
-        if (!dev->screen) {
-            return -ENOMEM;
+
+int display_init(struct display *dev, struct interface *interface) {
+    int ret = 0;
+    char gpio_tmp[16];
+    printk(KERN_DEBUG"[%s]\n", __func__);
+    if (interface->write_cmd)
+        dev->interface.write_cmd = interface->write_cmd;
+    if (interface->write_data)
+        dev->interface.write_data = interface->write_data;
+    if (interface->write_data_buffer)
+        dev->interface.write_data_buffer = interface->write_data_buffer;
+    dev->gpio_reset = interface->gpio_reset;
+    if (dev->gpio_reset <= 0)
+        return -EFAULT;
+    sprintf(gpio_tmp, "ssd1306_rst_%u", dev->gpio_reset);
+    printk(KERN_DEBUG"[%s] init %s", __func__, gpio_tmp);
+    ret = gpio_request_one(dev->gpio_reset, GPIOF_OUT_INIT_HIGH, gpio_tmp);
+    if (ret < 0) {
+        pr_err("gpio_request(%s)failed with %d\n", gpio_tmp, ret);
+        return ret;
+    }
+    dev->vmem_size = DISPLAY_SIZE;
+    if (!dev->vmem) {
+        dev->vmem = vzalloc(dev->vmem_size);
+        if (!dev->vmem) {
+            ret = -ENOMEM;
+            goto alloc_failed;
         }
     }
-    return 0;
-}
+    mutex_init(&dev->mem_mutex);
+    printk(KERN_DEBUG"[%s] end\n", __func__);
+    return ret;
 
-void display_deinit(display_t *dev) {
+    alloc_failed:
     gpio_free(dev->gpio_reset);
-    kfree(dev->screen);
+    return ret;
 }
 
-void display_reset(display_t *dev) {
-    gpio_set_value(dev->gpio_reset, GPIO_LO);
+void display_deinit(struct display *dev) {
+    printk(KERN_DEBUG"[%s]\n", __func__);
+    gpio_free(dev->gpio_reset);
+    if (dev->vmem) {
+        mutex_lock(&dev->mem_mutex);
+        vfree(dev->vmem);
+        mutex_unlock(&dev->mem_mutex);
+    }
+    mutex_destroy(&dev->mem_mutex);
+}
+
+void display_reset(struct display *dev) {
+    printk(KERN_DEBUG"[%s]\n", __func__);
+    gpio_set_value(dev->gpio_reset, 0);
     udelay(10);
-    gpio_set_value(dev->gpio_reset, GPIO_HI);
+    gpio_set_value(dev->gpio_reset, 1);
     set_reverse(dev, SSD1306_FALSE, SSD1306_TRUE);
     set_mapping(dev, 0, 0, 64);
     set_contrast(dev, 0xFF);
@@ -200,23 +233,27 @@ void display_reset(display_t *dev) {
     set_graphic_zoom(dev, SSD1306_FALSE);
 }
 
-void display_turn_on(display_t *dev) {
-    dev->write_cmd(dev, CMD_POWER_CHARGE_PUMP);
-    dev->write_cmd(dev, CHARGE_PUMP_ON);
-    dev->write_cmd(dev, CMD_DISPLAY_ON);
+void display_turn_on(struct display *dev) {
+    dev->interface.write_cmd(dev, CMD_POWER_CHARGE_PUMP);
+    dev->interface.write_cmd(dev, CHARGE_PUMP_ON);
+    dev->interface.write_cmd(dev, CMD_DISPLAY_ON);
 }
 
-void display_clear(display_t *dev) {
+void display_clear(struct display *dev) {
     display_reset(dev);
     display_turn_on(dev);
 }
 
-void display_update(display_t *dev, size_t size) {
-    update_screen(dev, dev->screen, size);
+void display_update(struct display *dev, size_t size) {
+    if (dev->vmem) {
+        mutex_lock(&dev->mem_mutex);
+        update_screen(dev, dev->vmem, size);
+        mutex_unlock(&dev->mem_mutex);
+    }
 }
 
-void display_turn_off(display_t *dev) {
-    dev->write_cmd(dev, CMD_POWER_CHARGE_PUMP);
-    dev->write_cmd(dev, CHARGE_PUMP_OFF);
-    dev->write_cmd(dev, CMD_DISPLAY_OFF);
+void display_turn_off(struct display *dev) {
+    dev->interface.write_cmd(dev, CMD_POWER_CHARGE_PUMP);
+    dev->interface.write_cmd(dev, CHARGE_PUMP_OFF);
+    dev->interface.write_cmd(dev, CMD_DISPLAY_OFF);
 }

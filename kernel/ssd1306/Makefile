@@ -1,5 +1,5 @@
-obj-m := ssd1306_spi.o
-ssd1306_spi-objs := ssd1306.o ssd1306_spi4.o
+obj-m := ssd1306_drv.o
+ssd1306_drv-objs := ssd1306.o ssd1306_fb.o ssd1306_spi.o
 
 HEAD := $(shell uname -r)
 KERNEL := /usr/src/linux-headers-$(HEAD)/
@@ -13,9 +13,10 @@ clean:
 	make -C $(KERNEL) M=$(PWD)  clean
 install:
 	-rmmod spidev
-	-rmmod ssd1306_spi
-	-insmod ssd1306_spi.ko
+	-rmmod ssd1306_drv
+	-insmod ssd1306_drv.ko
 uninstall:
-	rmmod ssd1306_spi
+	-rmmod ssd1306_drv
 test:
-	$(CC) -o ssd1306_spi4_test ssd1306_spi4_test.c -std=gnu99
+	$(CC) -o ssd1306_test ssd1306_test.c -std=gnu99
+	chgrp video ssd1306_test

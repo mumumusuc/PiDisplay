@@ -73,11 +73,11 @@ static char *file = "../BadApple.mp4";
 
 static void clean_up(int signo) {
     LOG("%s", __func__);
-    if (display) {
+    //if (display) {
         //display_turn_off(display);
-        display_end(display);
-        delete(object(display));
-    }
+    //    display_end(display);
+    //    delete(object(display));
+    //}
 }
 
 API_BEFORE static void register_device() {
@@ -135,29 +135,60 @@ static void draw_text(IplImage *src, const char *text, CvPoint origin, CvFont *f
     cvPutText(src, text, origin, font, cvScalarAll(255));
 }
 */
+#include <fcntl.h>
+#include <linux/fb.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
 
 int main(int argc, char *const argv[]) {
     parse_args(argc, argv);
     char _device[32];
     sprintf(_device, "/%s/%s/%s", device, driver, type);
     LOG("%s", _device);
-    display = create_display(_device);
-    if (!display) {
-        ERROR();
-        exit(-1);
+    int fd = open("/dev/fb1", O_RDWR);
+    if (fd < 0) {
+        fprintf(stderr, "open %d failed\n", fd);
+        return -1;
     }
-    signal(SIGINT, clean_up);
-    display_begin(display);
-    display_reset(display);
-    display_turn_on(display);
+    printf("open %d success \n", fd);
+    struct fb_fix_screeninfo finfo;
+    struct fb_var_screeninfo vinfo;
+    if (ioctl(fd, FBIOGET_FSCREENINFO, &finfo) < 0) {
+        perror("ioctl FBIOGET_FSCREENINFO\n");
+        return -1;
+    }
+    if (ioctl(fd, FBIOGET_VSCREENINFO, &vinfo) < 0) {
+        perror("ioctl FBIOGET_VSCREENINFO\n");
+        return -1;
+    }
+
+    size_t width = vinfo.xres_virtual;
+    size_t height = vinfo.yres_virtual;
+    size_t size = finfo.smem_len;
+    printf("w = %d, h = %d, s = %d\n", width, height, size);
+    uint8_t *screen_buffer = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (screen_buffer == MAP_FAILED) {
+        perror("mmap failed\n");
+        close(fd);
+        return -1;
+    }
+    //display = create_display(_device);
+    //if (!display) {
+    //    ERROR();
+    //    exit(-1);
+    //}
+    //signal(SIGINT, clean_up);
+    //display_begin(display);
+    //display_reset(display);
+    //display_turn_on(display);
     //display_clear(display);
-    DisplayInfo info;
-    display_get_info(display, &info);
-    int width = info.width;
-    int height = info.height;
-    LOG("%s : w = %d , h = %d , fmt = %d", info.vendor, width, height, info.pixel_format);
-    size_t size = sizeof(uint8_t) * width * height * info.pixel_format / 8;
-    uint8_t *screen_buffer = (uint8_t *) calloc(1, size);
+    //DisplayInfo info;
+    //display_get_info(display, &info);
+    //int width = info.width;
+    //int height = info.height;
+    LOG("%s : w = %d , h = %d , s = %d", finfo.id, width, height, size);
+    //size_t size = sizeof(uint8_t) * width * height * info.pixel_format / 8;
+    //uint8_t *screen_buffer = (uint8_t *) calloc(1, size);
 
 #ifdef FREE_IMAGE
     FreeImage_Initialise(TRUE);
@@ -245,7 +276,7 @@ int main(int argc, char *const argv[]) {
                 sws_scale(pSwsCtx, pFrame->data, pFrame->linesize, 0, pFrame->height, dst_data, linesize);
                 //cvAdaptiveThreshold(src, src, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 3, 0);
                 convert(pFrameG->data[0], screen_buffer, width, height);
-                display_update(display, screen_buffer);
+                //display_update(display, screen_buffer);
                 gettimeofday(&t_middle_time, NULL);
                 float time = 1000000 * (t_middle_time.tv_sec - tBeginTime.tv_sec) +
                              (t_middle_time.tv_usec - tBeginTime.tv_usec);
@@ -271,7 +302,9 @@ int main(int argc, char *const argv[]) {
     display_update(display, screen_buffer);
 #endif
 
-    free(screen_buffer);
+    //free(screen_buffer);
+    munmap(screen_buffer, size);
+    close(fd);
 
 #ifdef FREE_IMAGE
     FreeImage_Unload(bmp);

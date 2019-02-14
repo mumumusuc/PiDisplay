@@ -19,7 +19,7 @@
 #define SSD_IOC_OFF     _IO(SSD_IOC_MAGIC,4)
 #define SSD_IOC_DISPLAY _IOW(SSD_IOC_MAGIC,5,void*)
 
-typedef struct {
+typedef struct display_info {
     uint16_t width;
     uint16_t height;
     uint8_t format;
@@ -27,7 +27,7 @@ typedef struct {
     char vendor[16];
 } display_info_t;
 
-typedef struct {
+typedef struct display_config {
     uint8_t brightness;
     uint8_t inverse;
     // TODO: other configs

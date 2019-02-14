@@ -5,7 +5,6 @@ project(hello)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 # find linux kernel dir
 exec_program(uname ARGS -r OUTPUT_VARIABLE CMAKE_HOST_SYSTEM_VERSION)
-message(${CMAKE_HOST_SYSTEM_VERSION})
 set(KERNEL_INCLUDE "/usr/src/linux-headers-${CMAKE_HOST_SYSTEM_VERSION}")
 # include kernel dir
 include_directories(
