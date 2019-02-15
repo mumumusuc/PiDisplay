@@ -12,9 +12,7 @@
 #include <sys/mman.h>
 #include "ssd1306_user.h"
 
-static const char *node = "/dev/ssd1306_spi4";
 static const char *fb_node = "/dev/fb1";
-static char *file = "../BadApple.mp4";
 static int interrupted = 0;
 static size_t width;
 static size_t height;
@@ -29,43 +27,60 @@ static void clean_up(int sig) {
 }
 
 int main(int argc, char *argv[]) {
-    int ret = 0;
     int fd = open(fb_node, O_RDWR);
     if (fd < 0) {
         fprintf(stderr, "open %d failed\n", fd);
         return -1;
     }
     printf("open %d success \n", fd);
-    close(fd);
-    struct fb_fix_screeninfo finfo;
-    struct fb_var_screeninfo vinfo;
-    ret = ioctl(fd, FBIOGET_FSCREENINFO, &finfo);
-    if (ret < 0) {
-        perror("ioctl FBIOGET_FSCREENINFO\n");
-        return -1;
+
+    if (ioctl(fd, FBIOBLANK, FB_BLANK_NORMAL) < 0) {
+        perror("ioctl FBIOBLANK");
     }
-    ret = ioctl(fd, FBIOGET_VSCREENINFO, &vinfo);
-    if (ret < 0) {
-        perror("ioctl FBIOGET_VSCREENINFO\n");
-        return -1;
+    if (ioctl(fd, FBIOBLANK, FB_BLANK_UNBLANK) < 0) {
+        perror("ioctl FBIOBLANK");
     }
 
-    width = vinfo.xres_virtual;
-    height = vinfo.yres_virtual;
-    size = finfo.smem_len;
-    printf("w = %d, h = %d, s = %d\n", width, height, size);
+    struct fb_fix_screeninfo finfo;
+    struct fb_var_screeninfo vinfo;
+    if (ioctl(fd, FBIOGET_FSCREENINFO, &finfo) < 0) {
+        perror("ioctl FBIOGET_FSCREENINFO");
+        return -1;
+    }
+    if (ioctl(fd, FBIOGET_VSCREENINFO, &vinfo) < 0) {
+        perror("ioctl FBIOGET_VSCREENINFO");
+        return -1;
+    }
+    width = vinfo.xres;
+    height = vinfo.yres;
+    size = width * height * vinfo.bits_per_pixel / 8;
+    printf("w = %d, h = %d, s = %d, ox = %d, oy = %d\n", width, height, size, vinfo.xoffset, vinfo.yoffset);
+
+    vinfo.xres = 128;
+    vinfo.xoffset = 64;
+    if (ioctl(fd, FBIOPUT_VSCREENINFO, &vinfo) < 0) {
+        perror("ioctl FBIOPUT_VSCREENINFO");
+    }else{
+        width = vinfo.xres;
+        height = vinfo.yres;
+        size = width * height * vinfo.bits_per_pixel / 8;
+        printf("w = %d, h = %d, s = %d, ox = %d, oy = %d\n", width, height, size, vinfo.xoffset, vinfo.yoffset);
+    }
+
+    sleep(1);
+
     fb_mem = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (fb_mem == MAP_FAILED) {
         perror("mmap failed\n");
-
+    } else {
+        uint8_t value = 0xff;
+        if (argc > 1) {
+            value = atoi(argv[1]) & 0xff;
+        }
+        printf("set value = %u \n", value);
+        memset(fb_mem, value, size);
     }
-
-    if (argc > 1) {
-        file = argv[1];
-    }
-
-
-
     clean_up(0);
+    close(fd);
     return 0;
 }

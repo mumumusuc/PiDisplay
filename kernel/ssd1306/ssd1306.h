@@ -9,6 +9,7 @@
 #define DISPLAY_WIDTH   SCREEN_COLUMNS
 #define DISPLAY_HEIGHT  SCREEN_ROWS
 #define DISPLAY_SIZE    (DISPLAY_WIDTH*DISPLAY_HEIGHT/8)
+#define DISPLAY_LINE    DISPLAY_WIDTH
 
 struct display;
 
@@ -26,6 +27,11 @@ struct display {
     void *par;
     u8 gpio_reset;
     u8 *vmem;
+    struct spinlock dirty_locker;
+    u8 dirty_col_start;
+    u8 dirty_row_start;
+    u8 dirty_col_end;
+    u8 dirty_row_end;
     size_t vmem_size;
     struct mutex mem_mutex;
     struct interface interface;
@@ -47,7 +53,7 @@ void display_turn_on(struct display *);
 
 void display_clear(struct display *);
 
-void display_update(struct display *, size_t);
+void display_update(struct display *, const u8 *, size_t);
 
 void display_turn_off(struct display *);
 

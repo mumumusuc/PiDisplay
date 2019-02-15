@@ -74,7 +74,7 @@ static char *file = "../BadApple.mp4";
 static void clean_up(int signo) {
     LOG("%s", __func__);
     //if (display) {
-        //display_turn_off(display);
+    //display_turn_off(display);
     //    display_end(display);
     //    delete(object(display));
     //}
@@ -140,6 +140,17 @@ static void draw_text(IplImage *src, const char *text, CvPoint origin, CvFont *f
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
+#define scale(pinx, piny, poutx, pouty) \
+do{                                     \
+   float fix = (float)*pinx;            \
+   float fiy = (float)*piny;            \
+   float fox = (float)*poutx;           \
+   float foy = (float)*pouty;           \
+   float r = fminf(fix/fox,fiy/foy);    \
+   *poutx = (typeof(*poutx))(fox*r);    \
+   *pouty = (typeof(*pouty))(foy*r);    \
+}while(0)
+
 int main(int argc, char *const argv[]) {
     parse_args(argc, argv);
     char _device[32];
@@ -153,25 +164,32 @@ int main(int argc, char *const argv[]) {
     printf("open %d success \n", fd);
     struct fb_fix_screeninfo finfo;
     struct fb_var_screeninfo vinfo;
+    uint8_t *screen_buffer = MAP_FAILED;
+    if (ioctl(fd, FBIOBLANK, FB_BLANK_NORMAL) < 0) {
+        perror("ioctl FBIOBLANK");
+        close(fd);
+        return -1;
+    }
     if (ioctl(fd, FBIOGET_FSCREENINFO, &finfo) < 0) {
         perror("ioctl FBIOGET_FSCREENINFO\n");
+        close(fd);
         return -1;
     }
     if (ioctl(fd, FBIOGET_VSCREENINFO, &vinfo) < 0) {
         perror("ioctl FBIOGET_VSCREENINFO\n");
+        close(fd);
         return -1;
     }
-
-    size_t width = vinfo.xres_virtual;
-    size_t height = vinfo.yres_virtual;
+    size_t width = vinfo.xres;
+    size_t height = vinfo.yres;
     size_t size = finfo.smem_len;
     printf("w = %d, h = %d, s = %d\n", width, height, size);
-    uint8_t *screen_buffer = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    /*uint8_t *screen_buffer = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (screen_buffer == MAP_FAILED) {
         perror("mmap failed\n");
         close(fd);
         return -1;
-    }
+    }*/
     //display = create_display(_device);
     //if (!display) {
     //    ERROR();
@@ -186,7 +204,7 @@ int main(int argc, char *const argv[]) {
     //display_get_info(display, &info);
     //int width = info.width;
     //int height = info.height;
-    LOG("%s : w = %d , h = %d , s = %d", finfo.id, width, height, size);
+    //LOG("%s : w = %d , h = %d , s = %d", finfo.id, width, height, size);
     //size_t size = sizeof(uint8_t) * width * height * info.pixel_format / 8;
     //uint8_t *screen_buffer = (uint8_t *) calloc(1, size);
 
@@ -205,12 +223,38 @@ int main(int argc, char *const argv[]) {
         ERROR("Fail to Load Image!");
         exit(1);
     }
+    int bmp_w = FreeImage_GetWidth(bmp);
+    int bmp_h = FreeImage_GetHeight(bmp);
+    printf("bmp_w = %d, bmp_h = %d,\n", bmp_w, bmp_h);
+    scale(&width, &height, &bmp_w, &bmp_h);
+    vinfo.xres = bmp_w;
+    vinfo.yres = bmp_h;
+    vinfo.xoffset = (width - bmp_w) / 2;
+    vinfo.yoffset = (height - bmp_h) / 2;
+    printf("bw = %d, bh = %d, ox = %d, oy = %d\n", vinfo.xres, vinfo.yres, vinfo.xoffset, vinfo.yoffset);
+    if (ioctl(fd, FBIOPUT_VSCREENINFO, &vinfo) < 0) {
+        perror("ioctl FBIOPUT_VSCREENINFO\n");
+        close(fd);
+        return -1;
+    }
+    width = vinfo.xres;
+    height = vinfo.yres;
+    size = width * height * vinfo.bits_per_pixel / 8;
+    printf("sw = %d, sh = %d, ss = %d\n", width, height, size);
+    screen_buffer = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (screen_buffer == MAP_FAILED) {
+        perror("mmap fb failed\n");
+        close(fd);
+        return -1;
+    }
+
     FIBITMAP *gray = FreeImage_ConvertToGreyscale(bmp);
     FIBITMAP *dst = FreeImage_Rescale(gray, width, height, FILTER_BOX);
     FreeImage_FlipVertical(dst);
     uint8_t *bits = FreeImage_GetBits(dst);
     convert(bits, screen_buffer, width, height);
-    display_update(display, screen_buffer);
+    sleep(1);
+    //display_update(display, screen_buffer);
 #elif defined(FFMPEG)
     av_register_all();
     AVFormatContext *pFmtCtx = NULL;
@@ -246,34 +290,56 @@ int main(int argc, char *const argv[]) {
     AVFrame *pFrameG = av_frame_alloc();
     enum AVPixelFormat format = AV_PIX_FMT_GRAY8;
     int align = 1;
+
+    int bmp_w = pCodecCtx->width;
+    int bmp_h = pCodecCtx->height;
+    printf("bmp_w = %d, bmp_h = %d,\n", bmp_w, bmp_h);
+    scale(&width, &height, &bmp_w, &bmp_h);
+    vinfo.xres = bmp_w;
+    vinfo.yres = bmp_h;
+    vinfo.xoffset = (width - bmp_w) / 2;
+    vinfo.yoffset = (height - bmp_h) / 2;
+    printf("bw = %d, bh = %d, ox = %d, oy = %d\n", vinfo.xres, vinfo.yres, vinfo.xoffset, vinfo.yoffset);
+    if (ioctl(fd, FBIOPUT_VSCREENINFO, &vinfo) < 0) {
+        perror("ioctl FBIOPUT_VSCREENINFO\n");
+        close(fd);
+        return -1;
+    }
+    width = vinfo.xres;
+    height = vinfo.yres;
+    size = width * height * vinfo.bits_per_pixel / 8;
+    printf("sw = %d, sh = %d, ss = %d\n", width, height, size);
+    screen_buffer = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+   /*
     float r = 1.0f / fmax(pCodecCtx->width / (float) width, pCodecCtx->height / (float) height);
     int w = (int) (pCodecCtx->width * r);
     int h = (int) (pCodecCtx->height * r);
     int offset = (width - w) / 2;
-
+*/
     size_t buffer_size = sizeof(uint8_t) * av_image_get_buffer_size(format, width, height, align);
     uint8_t *buffer = (uint8_t *) av_malloc(buffer_size);
     memset(buffer, 0, buffer_size);
     av_image_fill_arrays(pFrameG->data, pFrameG->linesize, buffer, format, width, height, align);
     int fps = pFmtCtx->streams[videoStream]->avg_frame_rate.num / pFmtCtx->streams[videoStream]->avg_frame_rate.den;
     struct SwsContext *pSwsCtx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,
-                                                w + 2, h, format,
+                                                width, height, format,
                                                 SWS_BILINEAR, NULL, NULL, NULL);
     AVPacket packet;
     float tt = 1000.0f / fps;
     struct timeval tBeginTime, t_middle_time, tEndTime;
+    /*
     uint8_t *dst_data[AV_NUM_DATA_POINTERS] = {0};
     int linesize[AV_NUM_DATA_POINTERS] = {0};
     for (int i = 0; i < AV_NUM_DATA_POINTERS; i++) {
         dst_data[i] = pFrameG->data[i] + offset;
         linesize[i] = pFrameG->linesize[i];
-    }
+    }*/
     while (av_read_frame(pFmtCtx, &packet) >= 0) {
         if (packet.stream_index == videoStream) {
             gettimeofday(&tBeginTime, NULL);
             avcodec_send_packet(pCodecCtx, &packet);
             if (avcodec_receive_frame(pCodecCtx, pFrame) == 0) {
-                sws_scale(pSwsCtx, pFrame->data, pFrame->linesize, 0, pFrame->height, dst_data, linesize);
+                sws_scale(pSwsCtx, pFrame->data, pFrame->linesize, 0, pFrame->height, pFrameG->data, pFrameG->linesize);
                 //cvAdaptiveThreshold(src, src, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 3, 0);
                 convert(pFrameG->data[0], screen_buffer, width, height);
                 //display_update(display, screen_buffer);
@@ -303,7 +369,8 @@ int main(int argc, char *const argv[]) {
 #endif
 
     //free(screen_buffer);
-    munmap(screen_buffer, size);
+    if (screen_buffer != MAP_FAILED)
+        munmap(screen_buffer, size);
     close(fd);
 
 #ifdef FREE_IMAGE

@@ -27,7 +27,7 @@
 #include "ssd1306.h"
 
 #define DRIVER_NAME     "ssd1306_spi"
-#define SSD_SPI_SPD     8000000
+#define SSD_SPI_SPD     16000000
 #define SSD_SPI_MODE    SPI_MODE_0
 #define SSD_SPI_BPW     8
 #define SSD_SPI_DC0     22
@@ -35,11 +35,26 @@
 #define SSD_SPI_RST0    27
 #define SSD_SPI_RST1    17
 
-static const u8 spi_gpio_dc[] = {SSD_SPI_DC0, SSD_SPI_DC1};
-static const u8 spi_gpio_rst[] = {SSD_SPI_RST0, SSD_SPI_RST1};
+#ifdef USE_BOARD_INFO
+static struct spi_board_info display_spi_board_info[] = {
+        {
+                .modalias       = "ssd1306",
+                .bus_num        = 0,
+                .chip_select    = 3,
+                .max_speed_hz   = SSD_SPI_SPD,
+                .mode           = SPI_MODE_0,
+        },
+};
+static struct spi_dev_info{
+
+} spi_dev_info;
+#endif
+
+static const u8 spi_gpio_dc[] = {0, 0, SSD_SPI_DC0, SSD_SPI_DC1};
+static const u8 spi_gpio_rst[] = {0, 0, SSD_SPI_RST0, SSD_SPI_RST1};
 static const struct of_device_id spi_dt_ids[] = {
         {.compatible = "ssd1306"},
-        {.compatible = "spidev"},
+        //{.compatible = "spidev"},
         {},
 };
 MODULE_DEVICE_TABLE(of, spi_dt_ids);
@@ -113,6 +128,7 @@ static int spi_driver_probe(struct spi_device *spi) {
     int ret = 0;
     struct spi_dev *spidev;
     char gpio_tmp[16];
+    u32 prop_tmp;
     const char *alias = spi->modalias;
     const u8 bus = spi->master->bus_num;
     const u8 cs = spi->chip_select;
@@ -120,7 +136,8 @@ static int spi_driver_probe(struct spi_device *spi) {
         dev_err(&spi->dev, "buggy DT: spidev listed directly in DT\n");
         WARN_ON(spi->dev.of_node && !of_match_device(spi_dt_ids, &spi->dev));
     }
-    printk(KERN_DEBUG "[%s] probe %s%d.%d\n", __func__, alias, bus, cs);
+    printk(KERN_DEBUG "[%s] probe %s:%d.%d\n", __func__, alias, bus, cs);
+
     spidev = kzalloc(sizeof(struct spi_dev), GFP_KERNEL);
     if (IS_ERR_OR_NULL(spidev)) {
         printk(KERN_ALERT "[%s] alloc spidev failed\n", __func__);
@@ -137,12 +154,23 @@ static int spi_driver_probe(struct spi_device *spi) {
     }
     // init spi_dev
     spidev->spi = spi;
-    spidev->gpio_dc = spi_gpio_dc[cs];
     spidev->speed_hz = spi->max_speed_hz;
-    spi_interface.gpio_reset = spi_gpio_rst[cs];
+    ret = of_property_read_u32(spi->dev.of_node, "display-dc", &prop_tmp);
+    if (ret == 0)
+        spidev->gpio_dc = prop_tmp;
+    else {
+        spidev->gpio_dc = spi_gpio_dc[cs];
+        printk(KERN_DEBUG "[%s] display-dc not found , use default value %u\n", __func__, spidev->gpio_dc);
+    }
+    ret = of_property_read_u32(spi->dev.of_node, "display-reset", &prop_tmp);
+    if (ret == 0)
+        spi_interface.gpio_reset = prop_tmp;
+    else {
+        spi_interface.gpio_reset = spi_gpio_rst[cs];
+        printk(KERN_DEBUG "[%s] display-reset not found , use default value %u\n", __func__, spi_interface.gpio_reset);
+    }
     spin_lock_init(&spidev->spi_lock);
     sprintf(gpio_tmp, "ssd1306_dc_%u", spidev->gpio_dc);
-    printk(KERN_DEBUG"[%s] init %s", __func__, gpio_tmp);
     gpio_request_one(spidev->gpio_dc, GPIOF_OUT_INIT_LOW, gpio_tmp);
     // init display
     ret = display_driver_probe(&spi->dev, &spidev->display, &spi_interface);

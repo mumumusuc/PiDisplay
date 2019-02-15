@@ -154,14 +154,50 @@ update_screen_range(struct display *dev, const uint8_t *data, uint8_t start_page
         }
 }
 
+#define update(dev, data, size, ps, pe, cs, ce)             \
+do{                                                         \
+    set_render_mode(dev, MODE_HORIZONTAL);                  \
+    if(dev->interface.write_data_buffer) {                  \
+        set_range(dev, ps, pe, cs, ce);                     \
+        dev->interface.write_data_buffer(dev, data, size);  \
+    } else                                                  \
+        update_screen_range(dev, data, ps, pe, cs, ce);     \
+}while(0)
+
 static void update_screen(struct display *dev, const u8 *data, size_t size) {
-    set_render_mode(dev, MODE_HORIZONTAL);
-    if (dev->interface.write_data_buffer) {
-        set_range(dev, 0, 7, 0, 127);
-        dev->interface.write_data_buffer(dev, data, size);
-    } else {
-        update_screen_range(dev, data, 0, 7, 0, 127);
+    u8 ps = dev->dirty_row_start / 8;
+    u8 pe = dev->dirty_row_end / 8;
+    u8 cs = dev->dirty_col_start;
+    u8 ce = dev->dirty_col_end;
+    size_t vsize, slsize = ce - cs + 1;
+    u8 lsize = slsize;
+    int split_flag = 0;
+    if (pe > DISPLAY_HEIGHT - 1)
+        pe = DISPLAY_HEIGHT - 1;
+    if (ce > DISPLAY_WIDTH - 1) {
+        ce = DISPLAY_WIDTH - 1;
+        lsize = ce - cs + 1;
+        split_flag = 1;
     }
+    vsize = lsize * (pe - ps + 1);
+    if (!vsize)
+        return;
+    if (size <= 0)
+        size = vsize;
+    else
+        size = min(size, vsize);
+    if (size <= 0)
+        return;
+    /*
+     printk(KERN_DEBUG "[%s] page[%u,%u], col[%u,%u], lsize[%d], size[%d], split[%d]\n", __func__, ps, pe, cs, ce, lsize,
+           size, split_flag);
+    */
+    if (split_flag) {
+        u8 i = ps;
+        for (; i <= pe; i++)
+            update(dev, data + slsize * (i - ps), lsize, i, i, cs, ce);
+    } else
+        update(dev, data, size, ps, pe, cs, ce);
 }
 
 // end private
@@ -180,7 +216,7 @@ int display_init(struct display *dev, struct interface *interface) {
     if (dev->gpio_reset <= 0)
         return -EFAULT;
     sprintf(gpio_tmp, "ssd1306_rst_%u", dev->gpio_reset);
-    printk(KERN_DEBUG"[%s] init %s", __func__, gpio_tmp);
+    //printk(KERN_DEBUG"[%s] init %s", __func__, gpio_tmp);
     ret = gpio_request_one(dev->gpio_reset, GPIOF_OUT_INIT_HIGH, gpio_tmp);
     if (ret < 0) {
         pr_err("gpio_request(%s)failed with %d\n", gpio_tmp, ret);
@@ -194,6 +230,10 @@ int display_init(struct display *dev, struct interface *interface) {
             goto alloc_failed;
         }
     }
+    dev->dirty_col_start = dev->dirty_row_start = 0;
+    dev->dirty_col_end = DISPLAY_WIDTH - 1;
+    dev->dirty_row_end = DISPLAY_HEIGHT - 1;
+    spin_lock_init(&dev->dirty_locker);
     mutex_init(&dev->mem_mutex);
     printk(KERN_DEBUG"[%s] end\n", __func__);
     return ret;
@@ -216,8 +256,8 @@ void display_deinit(struct display *dev) {
 
 void display_reset(struct display *dev) {
     printk(KERN_DEBUG"[%s]\n", __func__);
-    gpio_set_value(dev->gpio_reset, 0);
-    udelay(10);
+    //gpio_set_value(dev->gpio_reset, 0);
+    //udelay(10);
     gpio_set_value(dev->gpio_reset, 1);
     set_reverse(dev, SSD1306_FALSE, SSD1306_TRUE);
     set_mapping(dev, 0, 0, 64);
@@ -234,22 +274,28 @@ void display_reset(struct display *dev) {
 }
 
 void display_turn_on(struct display *dev) {
+    printk(KERN_DEBUG"[%s]\n", __func__);
     dev->interface.write_cmd(dev, CMD_POWER_CHARGE_PUMP);
     dev->interface.write_cmd(dev, CHARGE_PUMP_ON);
     dev->interface.write_cmd(dev, CMD_DISPLAY_ON);
 }
 
 void display_clear(struct display *dev) {
-    display_reset(dev);
-    display_turn_on(dev);
+    if(dev->vmem && dev->vmem_size){
+        mutex_lock(&dev->mem_mutex);
+        memset(dev->vmem, 0, dev->vmem_size);
+        mutex_unlock(&dev->mem_mutex);
+        display_update(dev, NULL, 0);
+    }
 }
 
-void display_update(struct display *dev, size_t size) {
-    if (dev->vmem) {
-        mutex_lock(&dev->mem_mutex);
+void display_update(struct display *dev, const u8 *buffer, size_t size) {
+    mutex_lock(&dev->mem_mutex);
+    if (buffer)
+        update_screen(dev, buffer, size);
+    else if (dev->vmem)
         update_screen(dev, dev->vmem, size);
-        mutex_unlock(&dev->mem_mutex);
-    }
+    mutex_unlock(&dev->mem_mutex);
 }
 
 void display_turn_off(struct display *dev) {

@@ -10,9 +10,8 @@ CC=arm-linux-gnueabihf-gcc
 all:
 	make -C $(KERNEL) M=$(PWD) modules
 clean:
-	make -C $(KERNEL) M=$(PWD)  clean
+	make -C $(KERNEL) M=$(PWD) clean
 install:
-	-rmmod spidev
 	-rmmod ssd1306_drv
 	-insmod ssd1306_drv.ko
 uninstall:
