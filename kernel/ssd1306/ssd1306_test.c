@@ -56,18 +56,24 @@ int main(int argc, char *argv[]) {
     size = width * height * vinfo.bits_per_pixel / 8;
     printf("w = %d, h = %d, s = %d, ox = %d, oy = %d\n", width, height, size, vinfo.xoffset, vinfo.yoffset);
 
-    vinfo.xres = 128;
-    vinfo.xoffset = 64;
+    //vinfo.xres /= 2;
+    //vinfo.yres /= 2;
+    vinfo.xoffset = vinfo.xres / 2;
+    vinfo.yoffset = 22;
     if (ioctl(fd, FBIOPUT_VSCREENINFO, &vinfo) < 0) {
         perror("ioctl FBIOPUT_VSCREENINFO");
-    }else{
+    } else {
         width = vinfo.xres;
         height = vinfo.yres;
         size = width * height * vinfo.bits_per_pixel / 8;
         printf("w = %d, h = %d, s = %d, ox = %d, oy = %d\n", width, height, size, vinfo.xoffset, vinfo.yoffset);
     }
-
     sleep(1);
+
+    if (ioctl(fd, FBIOBLANK, FB_BLANK_UNBLANK) < 0) {
+        perror("ioctl FBIOBLANK");
+    }
+/*
 
     fb_mem = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (fb_mem == MAP_FAILED) {
@@ -80,6 +86,7 @@ int main(int argc, char *argv[]) {
         printf("set value = %u \n", value);
         memset(fb_mem, value, size);
     }
+    */
     clean_up(0);
     close(fd);
     return 0;

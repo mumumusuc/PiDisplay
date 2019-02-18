@@ -15,4 +15,4 @@ add_definitions(-DCONFIG_FB_DEFERRED_IO=1)
 add_definitions(-DCONFIG_HZ=1)
 
 aux_source_directory(. SRC_FILES)
-add_executable(${PROJECT_NAME} ${SRC_FILES})
+add_executable(${PROJECT_NAME} ${SRC_FILES} )

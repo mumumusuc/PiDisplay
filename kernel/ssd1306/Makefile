@@ -1,8 +1,9 @@
 obj-m := ssd1306_drv.o
-ssd1306_drv-objs := ssd1306.o ssd1306_fb.o ssd1306_spi.o
+ssd1306_drv-objs := ssd1306.o ssd1306_fb.o ssd1306_spi.o pi_logo.o
 
 HEAD := $(shell uname -r)
-KERNEL := /usr/src/linux-headers-$(HEAD)/
+#KERNEL := /usr/src/linux-headers-$(HEAD)/
+KERNEL := /home/mumumusuc/raspberry/linux/
 PWD := $(shell pwd)
 
 CC=arm-linux-gnueabihf-gcc

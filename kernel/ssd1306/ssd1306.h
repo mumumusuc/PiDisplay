@@ -11,11 +11,34 @@
 #define DISPLAY_SIZE    (DISPLAY_WIDTH*DISPLAY_HEIGHT/8)
 #define DISPLAY_LINE    DISPLAY_WIDTH
 
-struct display;
+#define DEBUG
+
+#ifdef DEBUG
+#define debug(format, ...)  printk(KERN_DEBUG "[%s] "format"\n",__func__,##__VA_ARGS__)
+#else
+#define debug(format, ...)  {}
+#endif
+
+struct surface {
+    u8 bpp;             /* bit per pixel */
+    u8 *data;           /* screen buffer */
+    size_t width;
+    size_t height;
+    size_t padding;     /* padding pixels */
+    size_t line_length; /* byte per line  */
+};
+
+struct display {
+    unsigned user;
+    void *par;
+    u8 gpio_reset;
+    struct surface surface;
+    struct mutex mem_mutex;
+    struct roi *roi;
+    struct interface *interface;
+};
 
 struct interface {
-    u8 gpio_reset;
-
     ssize_t (*write_cmd)(struct display *, u8);
 
     ssize_t (*write_data)(struct display *, u8);
@@ -23,37 +46,25 @@ struct interface {
     ssize_t (*write_data_buffer)(struct display *, const u8 *, size_t);
 };
 
-struct display {
-    void *par;
-    u8 gpio_reset;
-    u8 *vmem;
-    struct spinlock dirty_locker;
-    u8 dirty_col_start;
-    u8 dirty_row_start;
-    u8 dirty_col_end;
-    u8 dirty_row_end;
-    size_t vmem_size;
-    struct mutex mem_mutex;
-    struct interface interface;
-};
-
 // define init & deinit
-int display_init(struct display *, struct interface *);
+int display_init(struct display *);
 
 void display_deinit(struct display *);
 
-int display_driver_probe(struct device *, struct display *, struct interface *);
+int display_driver_probe(struct device *, struct display *);
 
 void dislay_driver_remove(struct display *);
 
 // define display methods
+int display_set_roi(struct display *, int, int, size_t, size_t);
+
 void display_reset(struct display *);
 
 void display_turn_on(struct display *);
 
 void display_clear(struct display *);
 
-void display_update(struct display *, const u8 *, size_t);
+void display_update(struct display *, struct surface *);
 
 void display_turn_off(struct display *);
 
