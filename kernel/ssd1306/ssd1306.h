@@ -6,6 +6,7 @@
 #include <linux/mutex.h>
 #include "ssd1306_def.h"
 
+#define DISPLAY_MODULE  "SSD1306_128_64"
 #define DISPLAY_WIDTH   SCREEN_COLUMNS
 #define DISPLAY_HEIGHT  SCREEN_ROWS
 #define DISPLAY_SIZE    (DISPLAY_WIDTH*DISPLAY_HEIGHT/8)
@@ -14,10 +15,24 @@
 #define DEBUG
 
 #ifdef DEBUG
+//#define DEBUG_TIME
+#ifdef DEBUG_TIME
+#include <linux/time.h>
+#endif
 #define debug(format, ...)  printk(KERN_DEBUG "[%s] "format"\n",__func__,##__VA_ARGS__)
 #else
 #define debug(format, ...)  {}
 #endif
+
+struct roi {
+    int dirty;      /* update display only when dirty is true */
+    int row_offset;
+    int col_start;
+    int row_start;
+    int col_end;
+    int row_end;
+    struct spinlock locker;
+};
 
 struct surface {
     u8 bpp;             /* bit per pixel */
@@ -29,13 +44,15 @@ struct surface {
 };
 
 struct display {
-    unsigned user;
-    void *par;
+    unsigned id;
     u8 gpio_reset;
-    struct surface surface;
     struct mutex mem_mutex;
-    struct roi *roi;
+    struct roi *roi;            /* roi anchor, may be NULL */
+    struct surface *surface;    /* surface anchor, may be NULL */
     struct interface *interface;
+#ifdef  DEBUG_TIME
+    struct timeval time;
+#endif
 };
 
 struct interface {
@@ -47,7 +64,7 @@ struct interface {
 };
 
 // define init & deinit
-int display_init(struct display *);
+int display_init(struct display *, unsigned id);
 
 void display_deinit(struct display *);
 

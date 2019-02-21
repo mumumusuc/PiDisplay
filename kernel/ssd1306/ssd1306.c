@@ -12,16 +12,6 @@
 #define write_data(dev, data)               (dev)->interface->write_data((dev), (data));
 #define write_data_buffer(dev, buf, size)   (dev)->interface->write_data_buffer((dev),(buf),(size));
 
-struct roi {
-    struct spinlock locker;
-    int row_offset;
-    int col_start;
-    int row_start;
-    int col_end;
-    int row_end;
-};
-
-
 static struct surface blank = {
         .bpp         = 1,
         .padding     = 0,
@@ -31,6 +21,7 @@ static struct surface blank = {
         .line_length = DISPLAY_LINE,
 };
 static struct roi entire = {
+        .dirty      = true,
         .col_start  = 0,
         .row_start  = 0,
         .col_end    = DISPLAY_WIDTH - 1,
@@ -199,7 +190,7 @@ do{                                                         \
 static void
 convert(const u8 *src, u8 *dst, u8 depth, unsigned cols, unsigned pages, unsigned line_length, unsigned page_length) {
     size_t index = 0;
-    uint8_t p = 0;
+    u8 p = 0, strip = depth / 8;
     int i, j, k;
     /*
     debug("pages[%d], cols[%d], line_length[%d]", pages, cols, line_length);
@@ -208,7 +199,7 @@ convert(const u8 *src, u8 *dst, u8 depth, unsigned cols, unsigned pages, unsigne
         for (j = 0; j < cols; j++) {
             p = 0;
             for (k = 0; k < 8; k++) {
-                index = (i * 8 + k) * line_length + j;
+                index = (i * 8 + k) * line_length + j * strip;
                 p |= (src[index] > 100 ? 1 : 0) << k;
             }
             dst[i * page_length + j] = p;
@@ -219,6 +210,12 @@ convert(const u8 *src, u8 *dst, u8 depth, unsigned cols, unsigned pages, unsigne
 #define bit_per_pixel(bpp)  (bpp==1?8:bpp)
 
 static void update_screen_dirty(struct display *dev, struct surface *surface, struct roi *roi) {
+    if (!roi->dirty)
+        return;
+#ifdef DEBUG_TIME
+    struct timeval begin, end;
+    do_gettimeofday(&begin);
+#endif
     int split_flag;
     u8 *data;
     u8 page_start = roi->row_start / 8;
@@ -227,6 +224,7 @@ static void update_screen_dirty(struct display *dev, struct surface *surface, st
     u8 col_end = roi->col_end;
     size_t sf_bpp = surface->bpp;
     size_t sf_width = surface->width;
+    size_t sf_height = surface->height;
     size_t sf_padding = surface->padding;
     size_t sf_interval = sf_width - sf_padding;
     size_t sf_line_len = surface->line_length;
@@ -235,7 +233,7 @@ static void update_screen_dirty(struct display *dev, struct surface *surface, st
     /* valid page count */
     size_t page_num = page_end - page_start + 1;
     /* roi capacity */
-    size_t roi_size = page_num * page_len;
+    //size_t roi_size = page_num * page_len;
     size_t trans_size;
     ssize_t row_offset = roi->row_offset;
     /* valid cols for transferring  */
@@ -243,10 +241,7 @@ static void update_screen_dirty(struct display *dev, struct surface *surface, st
     data = surface->data + sf_padding * bit_per_pixel(sf_bpp) / 8;
     /* if bpp == 1, line_length >= width, no convert */
     if (sf_bpp == 1) {
-        if (sf_padding == 0 && sf_interval == page_len) {
-            split_flag = 0;
-            trans_size = roi_size;
-        } else if (sf_padding == 0 && sf_interval < page_len) {
+        if (sf_padding == 0 && sf_interval <= page_len) {
             split_flag = 0;
             trans_size = cols * page_num;
             col_end = col_start + cols - 1;
@@ -259,8 +254,10 @@ static void update_screen_dirty(struct display *dev, struct surface *surface, st
         if (!blank.data)
             blank.data = vzalloc(DISPLAY_SIZE);
         split_flag = 0;
-        trans_size = roi_size;
-        convert(data, blank.data, sf_bpp, cols, page_num, sf_line_len, page_len);
+        page_num = min(page_num, sf_height / 8);
+        trans_size = cols * page_num;
+        col_end = col_start + cols - 1;
+        convert(data, blank.data, sf_bpp, cols, page_num, sf_line_len, cols);
         data = blank.data;
     }
 /*
@@ -280,26 +277,31 @@ static void update_screen_dirty(struct display *dev, struct surface *surface, st
         set_mapping(dev, 0, 0, 64 - row_offset);
     else
         set_mapping(dev, -row_offset, -row_offset, 64 + row_offset);
+#ifdef DEBUG_TIME
+    do_gettimeofday(&end);
+    u32 time = (end.tv_sec - begin.tv_sec) * 1000 + (end.tv_usec - begin.tv_usec) / 1000;
+    u32 time_fps = (end.tv_sec - dev->time.tv_sec) * 1000 + (end.tv_usec - dev->time.tv_usec) / 1000;
+    debug("update use %ld ms\n\t\t update fps %ld ms", time, time_fps);
+    do_gettimeofday(&dev->time);
+#endif
+
 }
 // end private
 
-int display_init(struct display *dev) {
+int display_init(struct display *dev, unsigned id) {
     int ret = 0;
     char gpio_tmp[16];
     debug();
+    dev->id = id;
     if (!dev->gpio_reset)
         return -EFAULT;
     sprintf(gpio_tmp, "ssd1306_rst_%u", dev->gpio_reset);
     debug("init %s", gpio_tmp);
     ret = gpio_request_one(dev->gpio_reset, GPIOF_OUT_INIT_HIGH, gpio_tmp);
-    if (ret < 0) {
-        pr_err("gpio_request(%s)failed with %d\n", gpio_tmp, ret);
+    if (ret != 0)
         return ret;
-    }
-    if (!dev->roi) {
-        dev->roi = kmalloc(sizeof(struct roi), GFP_KERNEL);
-        spin_lock_init(&roi(dev)->locker);
-    }
+    dev->roi = NULL;
+    dev->surface = NULL;
     mutex_init(&dev->mem_mutex);
     return ret;
 }
@@ -307,11 +309,14 @@ int display_init(struct display *dev) {
 void display_deinit(struct display *dev) {
     debug();
     gpio_free(dev->gpio_reset);
-    if (dev->roi)
-        kfree(dev->roi);
+    //if (dev->roi)
+    //    kfree(dev->roi);
     dev->roi = NULL;
-    if (blank.data)
+    dev->surface = NULL;
+    if (blank.data) {
         vfree(blank.data);
+        blank.data = NULL;
+    }
     mutex_destroy(&dev->mem_mutex);
 }
 
@@ -345,14 +350,19 @@ void display_clear(struct display *dev) {
     debug();
     if (blank.data)
         memset(blank.data, 0, DISPLAY_SIZE);
-    else
+    else {
         blank.data = vzalloc(DISPLAY_SIZE);
+        if (!blank.data) {
+            pr_err("[%s] alloc blank.data error(%d)\n", __func__, -ENOMEM);
+            return;
+        }
+    }
     update_screen_dirty(dev, &blank, &entire);
 }
 
 void display_update(struct display *dev, struct surface *surface) {
     mutex_lock(&dev->mem_mutex);
-    update_screen_dirty(dev, surface, dev->roi);
+    update_screen_dirty(dev, surface, dev->roi ? dev->roi : &entire);
     mutex_unlock(&dev->mem_mutex);
 }
 
@@ -364,6 +374,9 @@ void display_turn_off(struct display *dev) {
 
 int display_set_roi(struct display *dev, int xoffset, int yoffset, size_t width, size_t height) {
     size_t col_end, row_end;
+    if (!dev->roi)
+        return -EINVAL;
+    dev->roi->dirty = false;
     if (xoffset > DISPLAY_WIDTH - 1 || yoffset > DISPLAY_HEIGHT - 1)
         return -EFAULT;
     col_end = xoffset + width - 1;
@@ -383,5 +396,6 @@ int display_set_roi(struct display *dev, int xoffset, int yoffset, size_t width,
           roi(dev)->row_start, roi(dev)->row_end,
           roi(dev)->row_offset);
     */
+    dev->roi->dirty = true;
     return 0;
 }

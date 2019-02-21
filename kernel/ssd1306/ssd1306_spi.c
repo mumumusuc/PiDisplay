@@ -239,28 +239,31 @@ static int spi_driver_probe(struct spi_device *spi) {
     if (ret != 0)
         goto free_dev;
     spidev->display.gpio_reset = prop_tmp;
-
     debug("display-dc-%d, display-reset-%d", spidev->gpio_dc, spidev->display.gpio_reset);
 
     spin_lock_init(&spidev->spi_lock);
     sprintf(gpio_tmp, "ssd1306_dc_%u", spidev->gpio_dc);
     ret = gpio_request_one(spidev->gpio_dc, GPIOF_OUT_INIT_LOW, gpio_tmp);
+    if (ret != 0)
+        goto free_all;
 
     // init display
     spidev->display.interface = &spi_interface;
     ret = display_driver_probe(&spi->dev, &spidev->display);
-    if (ret < 0) {
+    if (ret != 0) {
         debug("display driver init failed");
         goto free_all;
     }
 
     // save
     spi_set_drvdata(spi, spidev);
+    debug("end");
     return ret;
 
     // failure
     free_all:
     gpio_free(spidev->gpio_dc);
+    dislay_driver_remove(&spidev->display);
     free_dev:
     kfree(spidev);
     return ret;
