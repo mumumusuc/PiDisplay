@@ -76,9 +76,9 @@ static int dht11_trigger(dht11_t *data) {
     /* prepare receive data */
     mod_timer(&dev.timer, jiffies + msecs_to_jiffies(10));
     udelay(100);
-    while (gpio_get_value(dev.gpio_data));
-    while (bit < DATA_BITS) {
-        while (!gpio_get_value(dev.gpio_data));
+    while (gpio_get_value(dev.gpio_data) && !dev.interrupted);
+    while (bit < DATA_BITS && !dev.interrupted) {
+        while (!gpio_get_value(dev.gpio_data) && !dev.interrupted);
         udelay(40);
         value = gpio_get_value(dev.gpio_data);
         buffer[bit / 8] |= value << (7 - bit % 8);
@@ -149,7 +149,31 @@ static long dht11_ioctl(struct file *filp, unsigned int cmd, unsigned long arg) 
 
 static ssize_t dht11_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos) {
     int ret = 0;
+    dht11_t *data = filp->private_data;
+    u8 buffer[] = {
+            '0' + data->data[0],
+            '.',
+            '0' + data->data[1],
+            ';',
+            '0' + data->data[2],
+            '.',
+            '0' + data->data[3],
+            '\n',
+            '\0',
+    };
+    size_t size = sizeof(buffer);
     debug();
+    if (*f_pos >= size)
+        return 0;
+    if (count > size - *f_pos)
+        count = size - *f_pos;
+    mutex_lock(&data->locker);
+    ret = copy_to_user(buf, buffer, count);
+    if (ret == 0) {
+        *f_pos += count;
+        ret = count;
+    }
+    mutex_unlock(&data->locker);
     return ret;
 }
 
