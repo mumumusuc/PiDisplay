@@ -180,8 +180,8 @@ int main(int argc, char *const argv[]) {
         close(fd);
         return -1;
     }
-    size_t width = vinfo.xres;
-    size_t height = vinfo.yres;
+    size_t width = vinfo.xres_virtual;
+    size_t height = vinfo.yres_virtual;
     size_t size = finfo.smem_len;
     printf("w = %d, h = %d, s = %d\n", width, height, size);
     /*uint8_t *screen_buffer = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -259,9 +259,11 @@ int main(int argc, char *const argv[]) {
     av_register_all();
     AVFormatContext *pFmtCtx = NULL;
     if (avformat_open_input(&pFmtCtx, file, NULL, NULL) != 0) {
+        perror("open input\n");
         exit(1);
     }
     if (avformat_find_stream_info(pFmtCtx, NULL) < 0) {
+        perror("find stream info\n");
         exit(1);
     }
     int videoStream = -1;
@@ -272,18 +274,22 @@ int main(int argc, char *const argv[]) {
         }
     }
     if (videoStream == -1) {
+        perror("video stream\n");
         exit(1);
     }
     AVCodecParameters *pCodecParams = pFmtCtx->streams[videoStream]->codecpar;
     AVCodec *pCodec = avcodec_find_decoder(pCodecParams->codec_id);
     if (!pCodec) {
+        perror("find codec\n");
         exit(1);
     }
     AVCodecContext *pCodecCtx = avcodec_alloc_context3(NULL);
     if (avcodec_parameters_to_context(pCodecCtx, pCodecParams) < 0) {
+        perror("alloc avcodec context\n");
         exit(1);
     }
     if (avcodec_open2(pCodecCtx, pCodec, NULL) < 0) {
+        perror("open codec context\n");
         exit(1);
     }
     AVFrame *pFrame = av_frame_alloc();
@@ -299,7 +305,9 @@ int main(int argc, char *const argv[]) {
     vinfo.yres = bmp_h;
     vinfo.xoffset = (width - bmp_w) / 2;
     vinfo.yoffset = (height - bmp_h) / 2;
-    printf("bw = %d, bh = %d, ox = %d, oy = %d\n", vinfo.xres, vinfo.yres, vinfo.xoffset, vinfo.yoffset);
+    vinfo.bits_per_pixel = 8;
+    printf("bw = %d, bh = %d, ox = %d, oy = %d,bpp=%d\n", vinfo.xres, vinfo.yres, vinfo.xoffset, vinfo.yoffset,
+           vinfo.bits_per_pixel);
     if (ioctl(fd, FBIOPUT_VSCREENINFO, &vinfo) < 0) {
         perror("ioctl FBIOPUT_VSCREENINFO\n");
         close(fd);
@@ -310,16 +318,16 @@ int main(int argc, char *const argv[]) {
     size = width * height * vinfo.bits_per_pixel / 8;
     printf("sw = %d, sh = %d, ss = %d\n", width, height, size);
     screen_buffer = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-   /*
-    float r = 1.0f / fmax(pCodecCtx->width / (float) width, pCodecCtx->height / (float) height);
-    int w = (int) (pCodecCtx->width * r);
-    int h = (int) (pCodecCtx->height * r);
-    int offset = (width - w) / 2;
-*/
-    size_t buffer_size = sizeof(uint8_t) * av_image_get_buffer_size(format, width, height, align);
-    uint8_t *buffer = (uint8_t *) av_malloc(buffer_size);
-    memset(buffer, 0, buffer_size);
-    av_image_fill_arrays(pFrameG->data, pFrameG->linesize, buffer, format, width, height, align);
+    /*
+     float r = 1.0f / fmax(pCodecCtx->width / (float) width, pCodecCtx->height / (float) height);
+     int w = (int) (pCodecCtx->width * r);
+     int h = (int) (pCodecCtx->height * r);
+     int offset = (width - w) / 2;
+ */
+    //size_t buffer_size = sizeof(uint8_t) * av_image_get_buffer_size(format, width, height, align);
+    //uint8_t *buffer = (uint8_t *) av_malloc(buffer_size);
+    //memset(buffer, 0, buffer_size);
+    av_image_fill_arrays(pFrameG->data, pFrameG->linesize, screen_buffer, format, width, height, align);
     int fps = pFmtCtx->streams[videoStream]->avg_frame_rate.num / pFmtCtx->streams[videoStream]->avg_frame_rate.den;
     struct SwsContext *pSwsCtx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,
                                                 width, height, format,
@@ -341,7 +349,7 @@ int main(int argc, char *const argv[]) {
             if (avcodec_receive_frame(pCodecCtx, pFrame) == 0) {
                 sws_scale(pSwsCtx, pFrame->data, pFrame->linesize, 0, pFrame->height, pFrameG->data, pFrameG->linesize);
                 //cvAdaptiveThreshold(src, src, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 3, 0);
-                convert(pFrameG->data[0], screen_buffer, width, height);
+                //convert(pFrameG->data[0], screen_buffer, width, height);
                 //display_update(display, screen_buffer);
                 gettimeofday(&t_middle_time, NULL);
                 float time = 1000000 * (t_middle_time.tv_sec - tBeginTime.tv_sec) +

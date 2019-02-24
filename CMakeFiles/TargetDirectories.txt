@@ -1,0 +1,3 @@
+/home/mumumusuc/CLionProjects/PiDisplay/CMakeFiles/rebuild_cache.dir
+/home/mumumusuc/CLionProjects/PiDisplay/CMakeFiles/graphic.dir
+/home/mumumusuc/CLionProjects/PiDisplay/CMakeFiles/edit_cache.dir

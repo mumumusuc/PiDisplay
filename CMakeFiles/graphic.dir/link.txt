@@ -1,0 +1,1 @@
+/usr/bin/cc -fPIC   -shared -Wl,-soname,libgraphic.so -o libgraphic.so CMakeFiles/graphic.dir/canvas.c.o -ldevice 

@@ -24,7 +24,7 @@ add_subdirectory(graphic)
 if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
 add_subdirectory(kernel/gpio)
 add_subdirectory(kernel/ssd1306)
-add_subdirectory(kernel/hc_sr04)
+add_subdirectory(kernel/dht11)
 endif()
 
 aux_source_directory(${CMAKE_SOURCE_DIR} SRC_FILES)
