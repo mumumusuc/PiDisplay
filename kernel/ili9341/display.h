@@ -4,25 +4,15 @@
 
 #include <linux/types.h>
 #include <linux/mutex.h>
-#include "ssd1306_def.h"
-
-#define DISPLAY_MODULE  "SSD1306_128_64"
-#define DISPLAY_WIDTH   SCREEN_COLUMNS
-#define DISPLAY_HEIGHT  SCREEN_ROWS
-#define DISPLAY_SIZE    (DISPLAY_WIDTH*DISPLAY_HEIGHT/8)
-#define DISPLAY_LINE    DISPLAY_WIDTH
 
 #define DEBUG
 
 #ifdef DEBUG
-//#define DEBUG_TIME
-#ifdef DEBUG_TIME
-#include <linux/time.h>
-#endif
 #define debug(format, ...)  printk(KERN_DEBUG "[%s] "format"\n",__func__,##__VA_ARGS__)
 #else
 #define debug(format, ...)  {}
 #endif
+
 
 struct roi {
     int dirty;      /* update display only when dirty is true */
@@ -43,16 +33,21 @@ struct surface {
     size_t line_length; /* byte per line  */
 };
 
+struct disp_gpio {
+    int flag;
+    u8 pin;
+    u8 mode;
+    char label[16];
+    struct list_head list;
+};
+
 struct display {
     unsigned id;
-    u8 gpio_reset;
-    struct mutex mem_mutex;
+    struct mutex dev_locker;
+    struct list_head gpios;
     struct roi *roi;            /* roi anchor, may be NULL */
     struct surface *surface;    /* surface anchor, may be NULL */
     struct interface *interface;
-#ifdef  DEBUG_TIME
-    struct timeval time;
-#endif
 };
 
 struct interface {
@@ -85,13 +80,8 @@ void display_update(struct display *, struct surface *);
 
 void display_turn_off(struct display *);
 
-// define driver(spi & i2c) methods
 int display_driver_spi_init(void);
 
 void display_driver_spi_exit(void);
-
-int display_driver_i2c_init(void);
-
-void display_driver_i2c_exit(void);
 
 #endif //PI_DISPLAY_SSD1306_H

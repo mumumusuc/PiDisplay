@@ -1,5 +1,6 @@
-obj-m := ssd1306.o
-ssd1306-objs := ssd1306_dev.o display_fb.o ssd1306_spi.o
+obj-m := ili9341.o
+ssd1306-objs := ili9341_dev.o ili9341_fb.o
+#ili9341_spi.o
 
 HEAD := $(shell uname -r)
 #KERNEL := /usr/src/linux-headers-$(HEAD)/
@@ -13,10 +14,10 @@ all:
 clean:
 	make -C $(KERNEL) M=$(PWD) clean
 install:
-	-rmmod ssd1306_drv
-	-insmod ssd1306_drv.ko
+	-rmmod ili9341
+	-insmod ili9341.ko
 uninstall:
-	-rmmod ssd1306_drv
+	-rmmod ili9341
 test:
-	$(CC) -o ssd1306_test ssd1306_test.c -std=gnu99
-	chgrp video ssd1306_test
+	$(CC) -o ili9341_test ili9341_test.c -std=gnu99
+	chgrp video ili9341_test

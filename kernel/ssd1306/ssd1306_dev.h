@@ -1,62 +1,141 @@
-//
-// Created by mumumusuc on 19-2-9.
-//
-
 #ifndef PI_DISPLAY_SSD1306_DEV_H
 #define PI_DISPLAY_SSD1306_DEV_H
 
-#include <linux/fb.h>
-#include <linux/mutex.h>
-#include "ssd1036_chr.h"
-#include "ssd1306_def.h"
+#define SSD1306_I2C_ADDR 0x3C
+#define SSD1306_I2C_RATE 1000000
 
-#define GPIO_LO 0
-#define GPIO_HI 1
+#define SCREEN_ROWS 64
+#define SCREEN_COLUMNS 128
 
-typedef struct interface {
-    void *par;
-    u8 gpio_reset;
 
-    ssize_t (*write_cmd)(struct interface *, u8);
+#define SSD1306_TRUE 0x01
+#define SSD1306_FALSE 0x00
 
-    ssize_t (*write_data)(struct interface *, u8);
 
-    ssize_t (*write_data_buffer)(struct interface *, const u8 *, size_t);
-} interface_t;
+#define CMD_DISPLAY_ON 0xAF
+#define CMD_DISPLAY_OFF 0xAE
+#define CMD_DISPLAY_NORMAL 0xA6
+#define CMD_DISPLAY_INVERSE 0xA7
+#define CMD_DISPLAY_RAM 0xA4
+#define CMD_DISPLAY_ALL 0xA5
+#define CMD_DISPLAY_CONTRAST 0x81
 
-typedef struct display {
-    u8 *vmem;
-    size_t vmem_size;
-    struct mutex mem_mutex;
-    struct interface *interface;
-} display_t;
 
-static display_info_t ssd1306_info = {
-        .width = SCREEN_COLUMNS,
-        .height = SCREEN_ROWS,
-        .format = 1,
-        .vendor = "ssd1306_128_64",
-        .size = 1024,
-};
+#define SCROLL_PAGE_MASK 0x00
+#define SCROLL_PAGE0 0x00
+#define SCROLL_PAGE1 0x01
+#define SCROLL_PAGE2 0x02
+#define SCROLL_PAGE3 0x03
+#define SCROLL_PAGE4 0x04
+#define SCROLL_PAGE5 0x05
+#define SCROLL_PAGE6 0x06
+#define SCROLL_PAGE7 0x07
 
-int display_init(display_t *);
+#define SCROLL_FRAME_5      0x00
+#define SCROLL_FRAME_64     0x01
+#define SCROLL_FRAME_128    0x02
+#define SCROLL_FRAME_256    0x03
+#define SCROLL_FRAME_3      0x04
+#define SCROLL_FRAME_4      0x05
+#define SCROLL_FRAME_25     0x06
+#define SCROLL_FRAME_2      0x07
 
-void display_reset(display_t *);
+#define CMD_SCROLL_RIGHT 0x26
+#define CMD_SCROLL_LEFT 0x27
+#define SCROLL_DIRECT_LEFT CMD_SCROLL_LEFT
+#define SCROLL_DIRECT_RIGHT CMD_SCROLL_RIGHT
 
-void display_turn_on(display_t *);
+#define CMD_SCROLL_DOWN_RIGHT 0x29
+#define CMD_SCROLL_DOWN_LEFT 0x2A
+#define SCROLL_DOWN_DIRECT_RIGHT CMD_SCROLL_DOWN_RIGHT
+#define SCROLL_DOWN_DIRECT_LEFT CMD_SCROLL_DOWN_LEFT
 
-void display_clear(display_t *);
+#define CMD_SCROLL_DISABLE 0x2E
+#define CMD_SCROLL_ENABLE 0x2F
+#define CMD_SCROLL_DOWN_AREA 0xA3
+#define FADE_OFF    0x00
+#define FADE_ONCE     0x20
+#define FADE_LOOP   0x30
+#define FADE_FRAME_8    0x00
+#define FADE_FRAME_16   0x01
+#define FADE_FRAME_24   0x02
+#define FADE_FRAME_32   0x03
+#define FADE_FRAME_40   0x04
+#define FADE_FRAME_48   0x05
+#define FADE_FRAME_56   0x06
+#define FADE_FRAME_64   0x07
+#define FADE_FRAME_72   0x08
+#define FADE_FRAME_80   0x09
+#define FADE_FRAME_88   0x0A
+#define FADE_FRAME_96   0x0B
+#define FADE_FRAME_104  0x0C
+#define FADE_FRAME_112  0x0D
+#define FADE_FRAME_120  0x0E
+#define FADE_FRAME_128  0x0F
 
-void display_update(display_t *, const u8 *, size_t);
+#define CMD_GRAPHIC_FADE 0x23
 
-void display_turn_off(display_t *);
+#define ZOOM_ON     0x01
+#define ZOOM_OFF    0x00
+#define CMD_GRAPHIC_ZOOM 0xD6
 
-void display_deinit(display_t *);
+#define MODE_HORIZONTAL 0x00
+#define MODE_VERTICAL   0x01
+#define MODE_PAGE       0x02
+#define MODE_INVALID    0x03
 
-void *display_fb_get_par(struct device *);
+#define CMD_ADDR_MODE 0x20
+#define CMD_ADDR_COL_RANGE 0x21
+#define CMD_ADDR_PAGE_RANGE 0x22
+#define CMD_ADDR_PAGE_START_MASK 0xB0
+#define CMD_ADDR_PAGE_START_0 0xB0
+#define CMD_ADDR_PAGE_START_1 0xB1
+#define CMD_ADDR_PAGE_START_2 0xB2
+#define CMD_ADDR_PAGE_START_3 0xB3
+#define CMD_ADDR_PAGE_START_4 0xB4
+#define CMD_ADDR_PAGE_START_5 0xB5
+#define CMD_ADDR_PAGE_START_6 0xB6
+#define CMD_ADDR_PAGE_START_7 0xB7
+#define CMD_ADDR_COL_START_HIGH_MASK 0x10
+#define CMD_ADDR_COL_START_LOW_MASK  0x00
 
-int display_fb_probe(struct device *device, struct interface *);
+#define CMD_HARD_START_LINE_MASK 0x40
+#define CMD_HARD_MAP_COL_0      0xA0
+#define CMD_HARD_MAP_COL_127    0xA1
+#define CMD_HARD_MUX 0xA8
+#define CMD_HARD_SCAN_DIRECT_NORMAL 0xC0
+#define CMD_HARD_SCAN_DIRECT_INVERSE 0xC8
+#define CMD_HARD_VERTICAL_OFFSET 0xD3
+#define CMD_HARD_COM_CONFIG 0xDA
+#define CMD_TIME_CLOCK 0xD5
+#define CMD_POWER_PRECHARGE 0xD9
 
-void display_fb_remove(struct device *device);
+#define VOLTAGE_0_DOT_65X 0x00
+#define VOLTAGE_0_DOT_77X 0x20
+#define VOLTAGE_0_DOT_83X 0x30
+
+#define CMD_POWER_VOLTAGE 0xDB
+
+#define CMD_NOP 0xE3
+
+#define CHARGE_PUMP_ON  0x14
+#define CHARGE_PUMP_OFF 0x10
+
+#define CMD_POWER_CHARGE_PUMP 0x8D
+
+#define CMD_READ_DISPLAY_ON     0x00
+#define CMD_READ_DISPLAY_OFF    0x40
+
+#include <linux/backlight.h>
+#include <linux/platform_device.h>
+#include "display.h"
+
+#define MAX_BRIGHTNESS                      0xFF
+#define DEFAULT_BRIGHTNESS                  0x7F
+#define DISPLAY_MODULE  "SSD1306_128_64"
+#define DISPLAY_WIDTH   SCREEN_COLUMNS
+#define DISPLAY_HEIGHT  SCREEN_ROWS
+#define DISPLAY_LINE    DISPLAY_WIDTH
+#define DISPLAY_SIZE    (DISPLAY_LINE*DISPLAY_HEIGHT/8)
 
 #endif //PI_DISPLAY_SSD1306_DEV_H

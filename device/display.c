@@ -115,7 +115,7 @@ inline void display_end(Display *dsp) {
 }
 
 #include "factory.h"
-#include "ssd1306/ssd1306.h"
+#include "ssd1306/ili9341_dev.h"
 #include "linux/default.h"
 #include "bcm/bcm.h"
 

@@ -20,35 +20,43 @@
 #include <linux/list.h>
 #include <linux/errno.h>
 #include <linux/gpio.h>
-#include "ssd1306_dev.h"
+#include <asm-generic/bug.h>
 #include "display.h"
+#include "ili9341.h"
 
-#define REGISTER_SPI_BOARD_INFO
-#define DEV_MAX_NUM     2
-#define DRIVER_NAME     "ssd1306"
-#define DEVICE_NAME     "ssd1306"
-#define SSD_SPI_SPD     32000000
+
+#define DRIVER_NAME     DISPLAY_MODULE
+#define DEVICE_NAME     DISPLAY_MODULE
+#define SSD_SPI_SPD     16000000
 #define SSD_SPI_MODE    SPI_MODE_0
 #define SSD_SPI_BPW     8
+#define SSD_SPI_DC      26
+#define SSD_SPI_RST     25
 
-static DECLARE_BITMAP(device_ids, DEV_MAX_NUM);
 
+//#define REGISTER_SPI_BOARD_INFO
+/*  NOTICE
+ *  in bcm2708-rpi-*.dts, spidev occupies spi0.0 and spi0.1.
+ *  run "rmmod spidev" to remove spidev driver
+ *  because device_initcall > module_init, so register spi_board_info with cs0&1 in this module may occurred error.
+ * */
 #ifdef REGISTER_SPI_BOARD_INFO
-struct spi_dev_info {
-    u8 gpio_dc;
-    u8 gpio_reset;
+static struct spi_dev_info {
+    u8 display_dc;
+    u8 display_reset;
+} spi_data[] = {
+        {.display_dc = SSD_SPI_DC0, .display_reset = SSD_SPI_RST0,},
+        {.display_dc = SSD_SPI_DC1, .display_reset = SSD_SPI_RST1,},
 };
-static struct spi_board_info ssd1306_spi_board_info[] = {
+
+static struct spi_board_info display_spi_board_info[] = {
         {
                 .modalias           = DEVICE_NAME,
                 .bus_num            = 0,
                 .chip_select        = 0,
                 .max_speed_hz       = SSD_SPI_SPD,
                 .mode               = SPI_MODE_0,
-                .controller_data    = &(struct spi_dev_info) {
-                        .gpio_dc = 22,
-                        .gpio_reset = 27,
-                },
+                .controller_data    = &spi_data[0],
         },
         {
                 .modalias           = DEVICE_NAME,
@@ -56,58 +64,63 @@ static struct spi_board_info ssd1306_spi_board_info[] = {
                 .chip_select        = 1,
                 .max_speed_hz       = SSD_SPI_SPD,
                 .mode               = SPI_MODE_0,
-                .controller_data    = &(struct spi_dev_info) {
-                        .gpio_dc = 23,
-                        .gpio_reset = 17,
-                },
+                .controller_data    = &spi_data[1],
         },
 };
 
-static int register_spi_device(struct spi_board_info *info) {
-    char name[16];
-    struct device *dev;
+static int register_spi_device(u16 bus, struct spi_board_info *info) {
+    int ret = 0;
     struct spi_master *master;
     struct spi_device *spi;
-#ifdef DEBUG
     struct spi_dev_info *data = info->controller_data;
     debug("bus[%d], cs[%d], dc[%d], rst[%d]",
-          info->bus_num, info->chip_select, data->gpio_dc, data->gpio_reset);
-#endif
-    master = spi_busnum_to_master(info->bus_num);
+           info->bus_num, info->chip_select, data->display_dc, data->display_reset);
+    master = spi_busnum_to_master(bus);
     if (IS_ERR_OR_NULL(master))
         return -ENODEV;
-    /* check imcompatible device*/
-    snprintf(name, sizeof(name), "%s.%u", dev_name(&master->dev), info->chip_select);
-    dev = bus_find_device_by_name(&spi_bus_type, NULL, name);
-    if (dev) {
-        debug("find imcompatible device[%s],deleting", name);
-        device_del(dev);
-    }
     spi = spi_new_device(master, info);
     if (IS_ERR_OR_NULL(spi))
         return -EBUSY;
-    return 0;
+    return ret;
 }
-
-static void unregister_spi_device(struct spi_board_info *info) {
-    char name[16];
-    struct device *dev;
-    struct spi_master *master;
-    debug();
-    master = spi_busnum_to_master(info->bus_num);
-    snprintf(name, sizeof(name), "%s.%u", dev_name(&master->dev), info->chip_select);
-    dev = bus_find_device_by_name(&spi_bus_type, NULL, name);
-    if (dev) {
-        debug("deleting device[%s]", name);
-        device_del(dev);
-    }
-}
-
 #endif
+
+/* in bcm2708-rpi-*.dts, we register two display spi device
+ * &gpio {
+    ...
+    spi0_cs_pins: spi0_cs_pins {
+    brcm,pins = <8 7 5 6>; // add gpio5&6 as cs2&3
+    brcm,function = <1>;
+    };
+    ...
+    };
+ * &spi0 {
+	...
+    display0: display@0{
+        compatible = "ssd1306";
+        reg = <2>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+        spi-max-frequency = <16000000>;
+        display-reset = <27>;
+        display-dc = <22>;
+    };
+    display1: display@1{
+        compatible = "ssd1306";
+        reg = <3>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+        spi-max-frequency = <16000000>;
+        display-reset = <17>;
+        display-dc = <23>;
+    };
+    };
+ * */
 
 /* from device tree */
 static const struct of_device_id spi_dt_ids[] = {
         {.compatible = DEVICE_NAME},
+        {.compatible = "spidev"},
         {},
 };
 MODULE_DEVICE_TABLE(of, spi_dt_ids);
@@ -119,8 +132,9 @@ static const struct spi_device_id spi_board_ids[] = {
 };
 MODULE_DEVICE_TABLE(spi, spi_board_ids);
 
+
 struct spi_dev {
-    struct display dev;
+    struct display display;
     struct spi_device *spi;
     spinlock_t spi_lock;
     u32 speed_hz;
@@ -186,22 +200,21 @@ static inline ssize_t spi_sync_write(struct spi_dev *spidev, const u8 *tx_buffer
 static int spi_driver_probe(struct spi_device *spi) {
     int ret = 0;
     struct spi_dev *spidev;
-    struct spi_dev_info *dev_info = NULL;
+    struct gpio *gpio;
+    char gpio_label[16];
     u32 prop_tmp;
-    unsigned long id;
+    const char *alias = spi->modalias;
+    const u8 bus = spi->master->bus_num;
+    const u8 cs = spi->chip_select;
     if (spi->dev.of_node && !of_match_device(spi_dt_ids, &spi->dev)) {
         dev_err(&spi->dev, "buggy DT: spidev listed directly in DT\n");
         WARN_ON(spi->dev.of_node && !of_match_device(spi_dt_ids, &spi->dev));
     }
-    debug("probe %s[%d.%d]", spi->modalias, spi->master->bus_num, spi->chip_select);
+    debug("probe %s:%d.%d", alias, bus, cs);
     spidev = kzalloc(sizeof(struct spi_dev), GFP_KERNEL);
     if (IS_ERR_OR_NULL(spidev))
         return -ENOMEM;
-    id = find_first_zero_bit(device_ids, DEV_MAX_NUM);
-    if (id > DEV_MAX_NUM - 1) {
-        pr_err("out of display max range(max:%u , req:%ld)\n", DEV_MAX_NUM, id);
-        return -ENODEV;
-    }
+
     // init spi
     spi->max_speed_hz = SSD_SPI_SPD;
     spi->bits_per_word = SSD_SPI_BPW;
@@ -209,46 +222,47 @@ static int spi_driver_probe(struct spi_device *spi) {
     ret = spi_setup(spi);
     if (ret < 0)
         goto free_dev;
-    debug("spi setup");
+
     // init spi_dev
     spidev->spi = spi;
     spidev->speed_hz = spi->max_speed_hz;
-#ifdef REGISTER_SPI_BOARD_INFO
-    dev_info = spi->controller_data;
-    spidev->dev.gpio.spi_dc = dev_info->gpio_dc;
-    spidev->dev.gpio.reset = dev_info->gpio_reset;
-#endif
-    if (!dev_info) {
-        ret = of_property_read_u32(spi->dev.of_node, "display-dc", &prop_tmp);
-        if (ret != 0)
-            goto free_dev;
-        spidev->dev.gpio.spi_dc = prop_tmp;
 
-        ret = of_property_read_u32(spi->dev.of_node, "display-reset", &prop_tmp);
-        if (ret != 0)
-            goto free_dev;
-        spidev->dev.gpio.reset = prop_tmp;
-    }
-    debug("dc[%d],reset[%d]", spidev->dev.gpio.spi_dc, spidev->dev.gpio.reset);
-    // init display
-    ret = display_init(&spidev->dev, id);
-    if (ret < 0)
+    ret = of_property_read_u32(spi->dev.of_node, "display-dc", &prop_tmp);
+    if (ret != 0) {
+        spidev->displ
         goto free_dev;
+    }
+    spidev->gpio_dc = prop_tmp;
+
+    ret = of_property_read_u32(spi->dev.of_node, "display-reset", &prop_tmp);
+    if (ret != 0)
+        goto free_dev;
+    spidev->display.gpio_reset = prop_tmp;
+    debug("display-dc-%d, display-reset-%d", spidev->gpio_dc, spidev->display.gpio_reset);
+
     spin_lock_init(&spidev->spi_lock);
-    spidev->dev.interface = &spi_interface;
-    ret = display_driver_probe(&spi->dev, &spidev->dev);
-    if (ret < 0) {
+    sprintf(gpio_tmp, "ssd1306_dc_%u", spidev->gpio_dc);
+    ret = gpio_request_one(spidev->gpio_dc, GPIOF_OUT_INIT_LOW, gpio_tmp);
+    if (ret != 0)
+        goto free_all;
+
+    // init display
+    spidev->display.interface = &spi_interface;
+    ret = display_driver_probe(&spi->dev, &spidev->display);
+    if (ret != 0) {
         debug("display driver init failed");
         goto free_all;
     }
+
     // save
     spi_set_drvdata(spi, spidev);
-    set_bit(id, device_ids);
+    debug("end");
     return ret;
 
     // failure
     free_all:
-    display_deinit(&spidev->dev);
+    gpio_free(spidev->gpio_dc);
+    dislay_driver_remove(&spidev->display);
     free_dev:
     kfree(spidev);
     return ret;
@@ -256,25 +270,26 @@ static int spi_driver_probe(struct spi_device *spi) {
 
 static int spi_driver_remove(struct spi_device *spi) {
     struct spi_dev *spidev;
-    debug("remove %s[%d.%d]", spi->modalias, spi->master->bus_num, spi->chip_select);
+    const char *alias = spi->modalias;
+    const u8 bus = spi->master->bus_num;
+    const u8 cs = spi->chip_select;
+    debug("remove %s:%d.%d", alias, bus, cs);
     spidev = spi_get_drvdata(spi);
     spin_lock_irq(&spidev->spi_lock);
     spidev->spi = NULL;
     spin_unlock_irq(&spidev->spi_lock);
-    display_driver_remove(&spidev->dev);
-    display_deinit(&spidev->dev);
-    clear_bit(spidev->dev.id, device_ids);
+    dislay_driver_remove(&spidev->display);
     kfree(spidev);
     return 0;
 }
 
 ssize_t spi_write_cmd(struct display *display, u8 cmd) {
     ssize_t status = 0;
-    struct spi_dev *spidev = container_of(display, struct spi_dev, dev);
+    struct spi_dev *spidev = container_of(display, struct spi_dev, display);
     struct spi_device *spi = spi_dev_get(spidev->spi);
     if (IS_ERR_OR_NULL(spi))
         return -ENODEV;
-    gpio_set_value(display->gpio.spi_dc, 0);
+    gpio_set_value(spidev->gpio_dc, 0);
     status = spi_sync_write(spidev, &cmd, 1);
     spi_dev_put(spi);
     return status;
@@ -282,11 +297,11 @@ ssize_t spi_write_cmd(struct display *display, u8 cmd) {
 
 ssize_t spi_write_data(struct display *display, u8 data) {
     ssize_t status = 0;
-    struct spi_dev *spidev = container_of(display, struct spi_dev, dev);
+    struct spi_dev *spidev = container_of(display, struct spi_dev, display);
     struct spi_device *spi = spi_dev_get(spidev->spi);
     if (IS_ERR_OR_NULL(spi))
         return -ENODEV;
-    gpio_set_value(display->gpio.spi_dc, 1);
+    gpio_set_value(spidev->gpio_dc, 1);
     status = spi_sync_write(spidev, &data, 1);
     spi_dev_put(spi);
     return status;
@@ -294,11 +309,11 @@ ssize_t spi_write_data(struct display *display, u8 data) {
 
 ssize_t spi_write_data_buffer(struct display *display, const u8 *data, size_t size) {
     ssize_t status = 0;
-    struct spi_dev *spidev = container_of(display, struct spi_dev, dev);
+    struct spi_dev *spidev = container_of(display, struct spi_dev, display);
     struct spi_device *spi = spi_dev_get(spidev->spi);
     if (IS_ERR_OR_NULL(spi))
         return -ENODEV;
-    gpio_set_value(display->gpio.spi_dc, 1);
+    gpio_set_value(spidev->gpio_dc, 1);
     status = spi_sync_write(spidev, data, size);
     spi_dev_put(spi);
     return status;
@@ -306,15 +321,15 @@ ssize_t spi_write_data_buffer(struct display *display, const u8 *data, size_t si
 
 int display_driver_spi_init(void) {
     int ret = 0;
-    int num;
     debug();
     ret = spi_register_driver(&display_spi_driver);
     if (ret != 0)
         return ret;
 #ifdef REGISTER_SPI_BOARD_INFO
-    for (num = 0; num < ARRAY_SIZE(ssd1306_spi_board_info); num++) {
-        ret = register_spi_device(&ssd1306_spi_board_info[num]);
-        if (ret < 0) {
+    int num;
+    for (num = 0; num < sizeof(display_spi_board_info); num++) {
+        ret = register_spi_device(0, &display_spi_board_info[num]);
+        if (ret != 0) {
             spi_unregister_driver(&display_spi_driver);
             break;
         }
@@ -324,11 +339,6 @@ int display_driver_spi_init(void) {
 }
 
 void display_driver_spi_exit(void) {
-    int num;
     debug();
-#ifdef REGISTER_SPI_BOARD_INFO
-    for (num = 0; num < ARRAY_SIZE(ssd1306_spi_board_info); num++)
-        unregister_spi_device(&ssd1306_spi_board_info[num]);
-#endif
     spi_unregister_driver(&display_spi_driver);
 }

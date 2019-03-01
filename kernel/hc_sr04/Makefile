@@ -1,7 +1,8 @@
 obj-m := hc_sr04.o
 
 HEAD := $(shell uname -r)
-KERNEL := /usr/src/linux-headers-$(HEAD)/
+#KERNEL := /usr/src/linux-headers-$(HEAD)/
+KERNEL := /home/mumumusuc/raspberry/linux/
 PWD := $(shell pwd)
 
 CC=arm-linux-gnueabihf-gcc
