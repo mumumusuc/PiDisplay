@@ -1,5 +1,5 @@
 obj-m := ssd1306.o
-ssd1306-objs := ssd1306_dev.o display_fb.o ssd1306_spi.o
+ssd1306-objs := ssd1306_dev.o display_fb.o ssd1306_spi.o ssd1306_i2c.o
 
 HEAD := $(shell uname -r)
 #KERNEL := /usr/src/linux-headers-$(HEAD)/

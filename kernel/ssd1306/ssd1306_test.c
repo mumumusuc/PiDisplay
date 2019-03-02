@@ -80,18 +80,17 @@ int main(int argc, char *argv[]) {
     if (fb_mem == MAP_FAILED) {
         perror("mmap failed\n");
     } else {
-        uint8_t value = 0xff;
-        if (argc > 1) {
-            value = atoi(argv[1]) & 0xff;
-        }
-        printf("set value = %u \n", value);
+        uint8_t value = 1;
+        size_t line_size = width * vinfo.bits_per_pixel / 8;
+        size_t set_size = line_size;
         while (!interrupted) {
-            if (value)
-                value >>= 1;
-            else
-                value = 0xFF;
-            memset(fb_mem, value, size);
-            usleep(200 * 1000);
+            memset(fb_mem, value, set_size);
+            set_size += line_size;
+            if (set_size > size) {
+                set_size = 0;
+                value = 1 - value;
+            }
+            usleep(10*1000);
         }
     }
     clean_up(0);

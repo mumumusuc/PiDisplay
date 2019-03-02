@@ -1,9 +1,6 @@
 
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/kernel.h>
 #include <linux/moduleparam.h>
-#include <linux/cdev.h>
 #include <linux/fs.h>
 #include <linux/wait.h>
 #include <linux/poll.h>
@@ -20,18 +17,16 @@
 #include <linux/list.h>
 #include <linux/errno.h>
 #include <linux/gpio.h>
+#include <asm-generic/bug.h>
 #include "ssd1306_dev.h"
 #include "display.h"
 
 #define REGISTER_SPI_BOARD_INFO
-#define DEV_MAX_NUM     2
 #define DRIVER_NAME     "ssd1306"
 #define DEVICE_NAME     "ssd1306"
 #define SSD_SPI_SPD     32000000
 #define SSD_SPI_MODE    SPI_MODE_0
 #define SSD_SPI_BPW     8
-
-static DECLARE_BITMAP(device_ids, DEV_MAX_NUM);
 
 #ifdef REGISTER_SPI_BOARD_INFO
 struct spi_dev_info {
@@ -81,7 +76,8 @@ static int register_spi_device(struct spi_board_info *info) {
     dev = bus_find_device_by_name(&spi_bus_type, NULL, name);
     if (dev) {
         debug("find imcompatible device[%s],deleting", name);
-        device_del(dev);
+        //device_del(dev);
+        spi_unregister_device(container_of(dev, struct spi_device, dev));
     }
     spi = spi_new_device(master, info);
     if (IS_ERR_OR_NULL(spi))
@@ -99,7 +95,8 @@ static void unregister_spi_device(struct spi_board_info *info) {
     dev = bus_find_device_by_name(&spi_bus_type, NULL, name);
     if (dev) {
         debug("deleting device[%s]", name);
-        device_del(dev);
+        //device_del(dev);
+        spi_unregister_device(container_of(dev, struct spi_device, dev));
     }
 }
 
@@ -144,15 +141,15 @@ static int spi_driver_probe(struct spi_device *);
 
 static int spi_driver_remove(struct spi_device *);
 
-static struct spi_driver display_spi_driver = {
-        .driver = {
+static struct spi_driver ssd1306_spi_driver = {
+        .driver     = {
                 .name =  DRIVER_NAME,
                 .owner = THIS_MODULE,
                 .of_match_table = of_match_ptr(spi_dt_ids),
         },
-        .probe  =  spi_driver_probe,
-        .remove =  spi_driver_remove,
-        .id_table = spi_board_ids,
+        .probe      =  spi_driver_probe,
+        .remove     =  spi_driver_remove,
+        .id_table   = spi_board_ids,
 };
 
 // private methods
@@ -188,7 +185,6 @@ static int spi_driver_probe(struct spi_device *spi) {
     struct spi_dev *spidev;
     struct spi_dev_info *dev_info = NULL;
     u32 prop_tmp;
-    unsigned long id;
     if (spi->dev.of_node && !of_match_device(spi_dt_ids, &spi->dev)) {
         dev_err(&spi->dev, "buggy DT: spidev listed directly in DT\n");
         WARN_ON(spi->dev.of_node && !of_match_device(spi_dt_ids, &spi->dev));
@@ -197,11 +193,6 @@ static int spi_driver_probe(struct spi_device *spi) {
     spidev = kzalloc(sizeof(struct spi_dev), GFP_KERNEL);
     if (IS_ERR_OR_NULL(spidev))
         return -ENOMEM;
-    id = find_first_zero_bit(device_ids, DEV_MAX_NUM);
-    if (id > DEV_MAX_NUM - 1) {
-        pr_err("out of display max range(max:%u , req:%ld)\n", DEV_MAX_NUM, id);
-        return -ENODEV;
-    }
     // init spi
     spi->max_speed_hz = SSD_SPI_SPD;
     spi->bits_per_word = SSD_SPI_BPW;
@@ -231,7 +222,7 @@ static int spi_driver_probe(struct spi_device *spi) {
     }
     debug("dc[%d],reset[%d]", spidev->dev.gpio.spi_dc, spidev->dev.gpio.reset);
     // init display
-    ret = display_init(&spidev->dev, id);
+    ret = display_init(&spidev->dev);
     if (ret < 0)
         goto free_dev;
     spin_lock_init(&spidev->spi_lock);
@@ -243,7 +234,6 @@ static int spi_driver_probe(struct spi_device *spi) {
     }
     // save
     spi_set_drvdata(spi, spidev);
-    set_bit(id, device_ids);
     return ret;
 
     // failure
@@ -263,7 +253,6 @@ static int spi_driver_remove(struct spi_device *spi) {
     spin_unlock_irq(&spidev->spi_lock);
     display_driver_remove(&spidev->dev);
     display_deinit(&spidev->dev);
-    clear_bit(spidev->dev.id, device_ids);
     kfree(spidev);
     return 0;
 }
@@ -308,14 +297,14 @@ int display_driver_spi_init(void) {
     int ret = 0;
     int num;
     debug();
-    ret = spi_register_driver(&display_spi_driver);
-    if (ret != 0)
+    ret = spi_register_driver(&ssd1306_spi_driver);
+    if (ret < 0)
         return ret;
 #ifdef REGISTER_SPI_BOARD_INFO
     for (num = 0; num < ARRAY_SIZE(ssd1306_spi_board_info); num++) {
         ret = register_spi_device(&ssd1306_spi_board_info[num]);
         if (ret < 0) {
-            spi_unregister_driver(&display_spi_driver);
+            spi_unregister_driver(&ssd1306_spi_driver);
             break;
         }
     }
@@ -330,5 +319,5 @@ void display_driver_spi_exit(void) {
     for (num = 0; num < ARRAY_SIZE(ssd1306_spi_board_info); num++)
         unregister_spi_device(&ssd1306_spi_board_info[num]);
 #endif
-    spi_unregister_driver(&display_spi_driver);
+    spi_unregister_driver(&ssd1306_spi_driver);
 }

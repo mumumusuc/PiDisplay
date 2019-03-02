@@ -28,19 +28,33 @@
 #define DISPLAY_MAX_LINE    (DISPLAY_MAX_WIDTH*DISPLAY_MAX_DEPTH/8)
 #define DISPLAY_MAX_SIZE    (DISPLAY_MAX_HEIGHT*DISPLAY_MAX_LINE)
 
+static bool config_spi = true;
+
+module_param(config_spi, bool, S_IRUGO);
+static bool config_i2c = false;
+
+module_param(config_i2c, bool, S_IRUGO);
+
 struct fb_dev {
     struct fb_info *fb;
     struct list_head list;
 };
 
+struct dirty_area {
+    size_t dx;
+    size_t dy;
+    size_t w;
+    size_t h;
+    size_t offset;
+};
+
 struct display_head {
     unsigned users;             /* how many users opened this node */
     struct surface surface;
-    struct mutex locker;
+    struct dirty_area dirty;
+    struct mutex lock;
     struct list_head list;
     struct backlight_device *bl_dev;
-
-    void (*clear_up)(struct fb_info *, struct surface *);
 };
 
 struct display_node {
@@ -55,11 +69,11 @@ int bl_update_status(struct backlight_device *bl_dev) {
     struct display_node *node;
     int brightness = bl_dev->props.brightness;
     debug("set brightness[%d]", brightness);
-    mutex_lock(&hook->locker);
+    mutex_lock(&hook->lock);
     list_for_each_entry(node, &hook->list, list) {
         display_set_option(node->display, &(struct option) {.brightness = brightness});
     }
-    mutex_unlock(&hook->locker);
+    mutex_unlock(&hook->lock);
     return 0;
 }
 
@@ -89,7 +103,7 @@ static struct backlight_properties display_bl_prop = {
 
 /* how many framebuffers */
 static LIST_HEAD(fb_list);
-static DEFINE_MUTEX(fb_list_locker);
+static DEFINE_MUTEX(fb_list_lock);
 
 /* fb ops */
 static int display_fb_open(struct fb_info *, int);
@@ -150,10 +164,32 @@ static struct fb_ops display_fbops = {
         .fb_check_var   = display_fb_check_var,
 };
 
+static __always_inline void make_dirty(struct fb_info *info, ssize_t dx, ssize_t dy, ssize_t width, ssize_t height) {
+    struct display_head *hook = info->par;
+    hook->dirty.dx = dx < 0 ? 0 : dx;
+    hook->dirty.dy = dy < 0 ? 0 : dy;
+    hook->dirty.w = width < 0 ? hook->surface.width : width;
+    hook->dirty.h = height < 0 ? hook->surface.height : height;
+    hook->dirty.offset = (hook->dirty.dx + hook->dirty.dy * hook->surface.line_length) * hook->surface.depth / 8;
+    hook->surface.data = info->screen_buffer + hook->dirty.offset;
+}
+
+static __always_inline void make_clean(struct fb_info *info) {
+    struct display_head *hook = info->par;
+    hook->dirty.dx = 0;
+    hook->dirty.dy = 0;
+    hook->dirty.w = hook->surface.width;
+    hook->dirty.h = hook->surface.height;
+    hook->dirty.offset = 0;
+    hook->surface.data = info->screen_buffer;
+}
+
 static int update_roi(struct fb_info *info, size_t dx, size_t dy, size_t width, size_t height) {
     int ret, index = 0;
     struct display_head *hook = info->par;
     struct display_node *node;
+    dx += info->var.xoffset;
+    dy += info->var.yoffset;
 #ifdef SINGLE_FB
     list_for_each_entry(node, &hook->list, list) {
 #else
@@ -174,23 +210,16 @@ static int update_roi(struct fb_info *info, size_t dx, size_t dy, size_t width, 
     return ret;
 }
 
-static __always_inline void clear_up(struct fb_info *info, struct surface *surface) {
-    update_roi(info, info->var.xoffset, info->var.yoffset, info->var.xres, info->var.yres);
-    surface->data = info->screen_buffer;
-}
-
 static __always_inline void update_display_now(struct fb_info *info) {
     struct display_head *hook = info->par;
     struct display_node *node;
-    mutex_lock(&hook->locker);
+    mutex_lock(&hook->lock);
+    update_roi(info, hook->dirty.dx, hook->dirty.dy, hook->dirty.w, hook->dirty.h);
     list_for_each_entry(node, &hook->list, list) {
         display_update(node->display, &hook->surface, &node->display->roi);
-        if (unlikely(hook->clear_up)) {
-            hook->clear_up(info, &hook->surface);
-            hook->clear_up = NULL;
-        }
     }
-    mutex_unlock(&hook->locker);
+    make_clean(info);
+    mutex_unlock(&hook->lock);
 }
 
 static __always_inline void update_display(struct fb_info *info) {
@@ -200,19 +229,19 @@ static __always_inline void update_display(struct fb_info *info) {
 static int display_fb_open(struct fb_info *info, int user) {
     struct display_head *hook = info->par;
     debug();
-    mutex_lock(&hook->locker);
+    mutex_lock(&hook->lock);
     hook->users++;
-    mutex_unlock(&hook->locker);
+    mutex_unlock(&hook->lock);
     if (likely(hook->users == 1)) {
         struct display_node *node;
         info->fbops->fb_check_var(&display_fb_var, info);
         memset(info->screen_buffer, 0, info->screen_size);
-        mutex_lock(&hook->locker);
+        mutex_lock(&hook->lock);
         list_for_each_entry(node, &hook->list, list) {
             display_turn_on(node->display);
             display_clear(node->display);
         }
-        mutex_unlock(&hook->locker);
+        mutex_unlock(&hook->lock);
         backlight_device_set_brightness(hook->bl_dev, DEFAULT_BRIGHTNESS);
     }
     return 0;
@@ -221,9 +250,9 @@ static int display_fb_open(struct fb_info *info, int user) {
 static int display_fb_release(struct fb_info *info, int user) {
     struct display_head *hook = info->par;
     debug();
-    mutex_lock(&hook->locker);
+    mutex_lock(&hook->lock);
     hook->users--;
-    mutex_unlock(&hook->locker);
+    mutex_unlock(&hook->lock);
     return 0;
 }
 
@@ -235,25 +264,19 @@ static ssize_t display_fb_write(struct fb_info *info, const char __user *buf, si
 }
 
 static int display_fb_blank(int blank, struct fb_info *info) {
-    //struct display_head *hook = info->par;
+    struct display_head *hook = info->par;
     //struct display_node *node;
     debug();
     switch (blank) {
         case FB_BLANK_NORMAL:
-            /*
-            mutex_lock(&hook->locker);
-            list_for_each_entry(node, &hook->list, list) {
-                display_turn_on(node->display);
-                display_clear(node->display);
-            }
-            mutex_unlock(&hook->locker);
-             */
+            backlight_device_set_brightness(hook->bl_dev, DEFAULT_BRIGHTNESS);
             break;
         case FB_BLANK_UNBLANK:
             break;
         case FB_BLANK_VSYNC_SUSPEND:
         case FB_BLANK_HSYNC_SUSPEND:
         case FB_BLANK_POWERDOWN:
+            backlight_device_set_brightness(hook->bl_dev, 0);
             break;
         default:
             break;
@@ -263,50 +286,57 @@ static int display_fb_blank(int blank, struct fb_info *info) {
 
 
 static void display_fb_fillrect(struct fb_info *info, const struct fb_fillrect *rect) {
-    struct display_head *hook = info->par;
-    size_t offset;
     //debug("dx=%d, dy=%d, width=%d, height=%d", rect->dx, rect->dy, rect->width, rect->height);
     sys_fillrect(info, rect);
-    update_roi(info, rect->dx, rect->dy, rect->width, rect->height);
-    hook->clear_up = clear_up;
-    offset = (rect->dx + rect->dy * hook->surface.line_length) * hook->surface.depth / 8;
-    hook->surface.data = info->screen_buffer + offset;
+    make_dirty(info, rect->dx, rect->dy, rect->width, rect->height);
     //update_display(info);
     update_display_now(info);
 }
 
 static void display_fb_copyarea(struct fb_info *info, const struct fb_copyarea *area) {
-    struct display_head *hook = info->par;
-    size_t offset;
     //debug("dx=%d, dy=%d, width=%d, height=%d", area->dx, area->dy, area->width, area->height);
     sys_copyarea(info, area);
-    update_roi(info, area->dx, area->dy, area->width, area->height);
-    hook->clear_up = clear_up;
-    offset = (area->dx + area->dy * hook->surface.line_length) * hook->surface.depth / 8;
-    hook->surface.data = info->screen_buffer + offset;
+    make_dirty(info, area->dx, area->dy, area->width, area->height);
     //update_display(info);
     update_display_now(info);
 }
 
 static void display_fb_imageblit(struct fb_info *info, const struct fb_image *image) {
-    struct display_head *hook = info->par;
-    size_t offset;
     //debug("dx=%d, dy=%d, width=%d, height=%d", image->dx, image->dy, image->width, image->height);
     sys_imageblit(info, image);
-    update_roi(info, image->dx, image->dy, image->width, image->height);
-    hook->clear_up = clear_up;
-    offset = (image->dx + image->dy * hook->surface.line_length) * hook->surface.depth / 8;
-    hook->surface.data = info->screen_buffer + offset;
+    make_dirty(info, image->dx, image->dy, image->width, image->height);
     //update_display(info);
     update_display_now(info);
 }
 
-static void display_fb_deferred_io(struct fb_info *info, struct list_head *list) {
+static void display_fb_deferred_io(struct fb_info *info, struct list_head *pagelist) {
+    unsigned int dirty_lines_start, dirty_lines_end;
+    struct display_head *hook = info->par;
+    struct page *page;
+    unsigned long index;
+    unsigned int y_low = 0, y_high = 0;
+    int count = 0;
+    dirty_lines_start = hook->dirty.dy;
+    dirty_lines_end = hook->dirty.dy + hook->dirty.h - 1;
+    list_for_each_entry(page, pagelist, lru) {
+        count++;
+        index = page->index << PAGE_SHIFT;
+        y_low = index / info->fix.line_length;
+        y_high = (index + PAGE_SIZE - 1) / info->fix.line_length;
+        //debug("index=%lu y_low=%d y_high=%d", index, y_low, y_high);
+        if (y_high > hook->surface.height - 1)
+            y_high = hook->surface.height - 1;
+        if (y_low < dirty_lines_start)
+            dirty_lines_start = y_low;
+        if (y_high > dirty_lines_end)
+            dirty_lines_end = y_high;
+    }
+    make_dirty(info, -1, dirty_lines_start, -1, dirty_lines_start - dirty_lines_end + 1);
     update_display_now(info);
 }
 
 static int display_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *info) {
-    int ret;
+    int ret = 0;
     size_t bpp, width, height, xoffset, yoffset;
     struct display_head *hook = info->par;
     debug();
@@ -321,26 +351,28 @@ static int display_fb_check_var(struct fb_var_screeninfo *var, struct fb_info *i
     yoffset = var->yoffset;
     if (width > DISPLAY_MAX_WIDTH || height > DISPLAY_MAX_HEIGHT)
         return -EINVAL;
-    mutex_lock(&hook->locker);
+    mutex_lock(&hook->lock);
     if (hook->users > 1) {
         ret = -EBUSY;
+        debug("current user[%u], busy", hook->users);
         goto done;
     }
-    ret = update_roi(info, xoffset, yoffset, width, height);
     hook->surface.data = info->screen_buffer;
     hook->surface.depth = bpp;
     hook->surface.width = width;
     hook->surface.height = height;
-    hook->surface.line_length = width;// * DISPLAY_NUM_H;
+    hook->surface.line_length = width;
+
     info->var.bits_per_pixel = bpp;
     info->var.xoffset = xoffset;
     info->var.yoffset = yoffset;
     info->var.xres = width;
     info->var.yres = height;
+    info->fix.line_length = width;
     goto done;
 
     done:
-    mutex_unlock(&hook->locker);
+    mutex_unlock(&hook->lock);
     return ret;
 }
 
@@ -355,9 +387,8 @@ static int prepare_fb(struct device *device, struct fb_dev **dev) {
     if (!info)
         return -ENOMEM;
     hook = info->par;
-    hook->clear_up = NULL;
     INIT_LIST_HEAD(&hook->list);
-    mutex_init(&hook->locker);
+    mutex_init(&hook->lock);
     /* alloc fb wrapper */
     fbdev = kzalloc(sizeof(struct fb_dev), GFP_KERNEL);
     if (!fbdev) {
@@ -378,9 +409,9 @@ static int prepare_fb(struct device *device, struct fb_dev **dev) {
     if (ret != 0)
         goto free_all;
     /* add to fb list */
-    mutex_lock(&fb_list_locker);
+    mutex_lock(&fb_list_lock);
     list_add_tail(&fbdev->list, &fb_list);
-    mutex_unlock(&fb_list_locker);
+    mutex_unlock(&fb_list_lock);
     *dev = fbdev;
     return ret;
 
@@ -435,13 +466,13 @@ int display_driver_probe(struct device *device, struct display *display) {
 #ifdef SINGLE_FB
     }
 #endif
-    mutex_lock(&fb_list_locker);
+    mutex_lock(&fb_list_lock);
     dev = list_last_entry(&fb_list, struct fb_dev, list);
-    mutex_unlock(&fb_list_locker);
+    mutex_unlock(&fb_list_lock);
     hook = dev->fb->par;
-    mutex_lock(&hook->locker);
+    mutex_lock(&hook->lock);
     list_add_tail(&node->list, &hook->list);
-    mutex_unlock(&hook->locker);
+    mutex_unlock(&hook->lock);
     return ret;
 
     /* failure */
@@ -459,11 +490,11 @@ void display_driver_remove(struct display *display) {
     struct display_head *hook;
     struct display_node *node, *next;
     debug();
-    mutex_lock(&fb_list_locker);
+    mutex_lock(&fb_list_lock);
     list_for_each_entry_safe(fbdev, fbnext, &fb_list, list) {
         debug("check fbdev[%d]", fbdev->fb->node);
         hook = fbdev->fb->par;
-        mutex_lock(&hook->locker);
+        mutex_lock(&hook->lock);
         list_for_each_entry_safe(node, next, &hook->list, list) {
             debug("check display_node[%d]", node->id);
             if (id == node->id) {
@@ -471,7 +502,7 @@ void display_driver_remove(struct display *display) {
                 kfree(node);
             }
         }
-        mutex_unlock(&hook->locker);
+        mutex_unlock(&hook->lock);
         if (list_empty(&hook->list)) {
             debug("del fbdev[%d]", fbdev->fb->node);
             list_del(&fbdev->list);
@@ -479,24 +510,30 @@ void display_driver_remove(struct display *display) {
                 debug("unregister backlight");
                 backlight_device_unregister(hook->bl_dev);
             }
-            mutex_destroy(&hook->locker);
+            mutex_destroy(&hook->lock);
             fb_deferred_io_cleanup(fbdev->fb);
             unregister_framebuffer(fbdev->fb);
             framebuffer_release(fbdev->fb);
         }
     }
-    mutex_unlock(&fb_list_locker);
+    mutex_unlock(&fb_list_lock);
 }
 
 // module methods
 static int __init display_fb_init(void) {
     int ret;
-    ret = display_driver_spi_init();
+    if (config_spi)
+        ret = display_driver_spi_init();
+    if (config_i2c)
+        ret = display_driver_i2c_init();
     return ret;
 }
 
 static void __exit display_fb_exit(void) {
-    display_driver_spi_exit();
+    if (config_spi)
+        display_driver_spi_exit();
+    if (config_i2c)
+        display_driver_i2c_exit();
     if (unlikely(!list_empty(&fb_list))) {
         struct fb_dev *fbdev;
         struct display_head *hook;
@@ -510,7 +547,7 @@ static void __exit display_fb_exit(void) {
             }
         }
     }
-    mutex_destroy(&fb_list_locker);
+    mutex_destroy(&fb_list_lock);
 }
 
 module_init(display_fb_init)

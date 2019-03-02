@@ -274,10 +274,25 @@ static void update_screen_dirty(struct display *dev, struct surface *surface, st
 
 }
 
-int display_init(struct display *dev, unsigned id) {
+#define DEV_MAX_NUM 4
+static DECLARE_BITMAP(device_ids, DEV_MAX_NUM);
+static DEFINE_SPINLOCK(global_dev_locker);
+
+int display_init(struct display *dev) {
     int ret = 0;
+    unsigned long id;
     debug();
+    spin_lock(&global_dev_locker);
+    id = find_first_zero_bit(device_ids, DEV_MAX_NUM);
+    if (id > DEV_MAX_NUM - 1) {
+        pr_err("out of display max range(max:%u , req:%ld)\n", DEV_MAX_NUM, id);
+        spin_unlock(&global_dev_locker);
+        return -ENODEV;
+    }
     dev->id = id;
+    set_bit(id, device_ids);
+    spin_unlock(&global_dev_locker);
+
     spin_lock_init(&dev->roi.locker);
     mutex_init(&dev->dev_locker);
     mutex_lock(&dev->dev_locker);
@@ -286,11 +301,13 @@ int display_init(struct display *dev, unsigned id) {
         ret = 0;
     if (ret < 0)
         goto done;
-    ret = gpio_request_one(dev->gpio.spi_dc, GPIOF_DIR_OUT, "display-dc");
-    if (ret == -EPROBE_DEFER)
-        ret = 0;
-    if (ret < 0)
-        goto free;
+    if (dev->gpio.spi_dc > 0) {
+        ret = gpio_request_one(dev->gpio.spi_dc, GPIOF_DIR_OUT, "display-dc");
+        if (ret == -EPROBE_DEFER)
+            ret = 0;
+        if (ret < 0)
+            goto free;
+    }
     mutex_unlock(&dev->dev_locker);
     return ret;
 
@@ -304,6 +321,9 @@ int display_init(struct display *dev, unsigned id) {
 
 void display_deinit(struct display *dev) {
     debug();
+    spin_lock(&global_dev_locker);
+    clear_bit(dev->id, device_ids);
+    spin_unlock(&global_dev_locker);
     mutex_lock(&dev->dev_locker);
     gpio_free(dev->gpio.reset);
     gpio_free(dev->gpio.spi_dc);
@@ -317,25 +337,6 @@ void display_deinit(struct display *dev) {
 
 void display_reset(struct display *dev) {
     debug();
-    //set_reverse(dev, SSD1306_FALSE, SSD1306_TRUE);
-    //set_mapping(dev, 0, 0, 64);
-    //set_contrast(dev, dev->brightness);
-    //set_point_invert(dev, SSD1306_FALSE);
-    //set_ignore_ram(dev, SSD1306_FALSE);
-    //set_frequency(dev, 8, 1);
-    //set_period_pre_charge(dev, 2, 2);
-    //set_pin_config(dev, SSD1306_TRUE, SSD1306_FALSE);
-    //set_voltage(dev, VOLTAGE_0_DOT_65X);
-    //set_graphic_scroll_disable(dev);
-    //set_graphic_fade(dev, FADE_OFF, FADE_FRAME_8);
-    //set_graphic_zoom(dev, SSD1306_FALSE);
-}
-
-void display_turn_on(struct display *dev) {
-    debug();
-    gpio_set_value(dev->gpio.reset, 0);
-    usleep_range(5, 10);
-    gpio_set_value(dev->gpio.reset, 1);
     set_reverse(dev, SSD1306_FALSE, SSD1306_TRUE);
     set_mapping(dev, 0, 0, 64);
     set_contrast(dev, DEFAULT_BRIGHTNESS);
@@ -348,6 +349,14 @@ void display_turn_on(struct display *dev) {
     set_graphic_scroll_disable(dev);
     set_graphic_fade(dev, FADE_OFF, FADE_FRAME_8);
     set_graphic_zoom(dev, SSD1306_FALSE);
+}
+
+void display_turn_on(struct display *dev) {
+    debug();
+    gpio_set_value(dev->gpio.reset, 0);
+    usleep_range(5, 10);
+    gpio_set_value(dev->gpio.reset, 1);
+    display_reset(dev);
     write_cmd(dev, CMD_POWER_CHARGE_PUMP);
     write_cmd(dev, CHARGE_PUMP_ON);
     write_cmd(dev, CMD_DISPLAY_ON);

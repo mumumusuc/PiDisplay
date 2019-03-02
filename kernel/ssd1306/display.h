@@ -5,7 +5,7 @@
 #include <linux/types.h>
 #include <linux/mutex.h>
 
-//#define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
 #define debug(format, ...)  printk(KERN_DEBUG "[%s] "format"\n",__func__,##__VA_ARGS__)
@@ -58,7 +58,7 @@ struct interface {
 
 
 // define init & deinit
-int display_init(struct display *, unsigned id);
+int display_init(struct display *);
 
 void display_deinit(struct display *);
 
