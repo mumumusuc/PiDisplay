@@ -309,14 +309,16 @@ int main(int argc, char *const argv[]) {
     printf("bw = %d, bh = %d, ox = %d, oy = %d,bpp=%d\n", vinfo.xres, vinfo.yres, vinfo.xoffset, vinfo.yoffset,
            vinfo.bits_per_pixel);
     if (ioctl(fd, FBIOPUT_VSCREENINFO, &vinfo) < 0) {
-        perror("ioctl FBIOPUT_VSCREENINFO\n");
+        perror("ioctl FBIOPUT_VSCREENINFO");
         close(fd);
         return -1;
     }
     width = vinfo.xres;
     height = vinfo.yres;
     size = width * height * vinfo.bits_per_pixel / 8;
-    printf("sw = %d, sh = %d, ss = %d\n", width, height, size);
+    //printf("sw = %d, sh = %d, ss = %d\n", width, height, size);
+    printf("bw = %d, bh = %d, ox = %d, oy = %d,bpp=%d\n", vinfo.xres, vinfo.yres, vinfo.xoffset, vinfo.yoffset,
+           vinfo.bits_per_pixel);
     screen_buffer = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     /*
      float r = 1.0f / fmax(pCodecCtx->width / (float) width, pCodecCtx->height / (float) height);

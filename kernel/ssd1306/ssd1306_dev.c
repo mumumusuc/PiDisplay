@@ -219,14 +219,13 @@ static void update_screen_dirty(struct display *dev, struct surface *surface, st
     size_t sf_bpp = surface->depth;
     size_t sf_width = surface->width;
     size_t sf_height = surface->height;
-    size_t sf_interval = sf_width - padding;
+    size_t sf_interval = sf_width - padding % sf_width;
     size_t sf_line_len = surface->line_length;
     /* valid page length (byte) */
     size_t page_len = col_end - col_start + 1;
     /* valid page count */
     size_t page_num = page_end - page_start + 1;
     /* roi capacity */
-    //size_t roi_size = page_num * page_len;
     size_t trans_size;
     ssize_t row_offset = roi->row_offset;
     /* valid cols for transferring  */
@@ -406,8 +405,8 @@ int display_set_roi(struct display *dev, int xoffset, int yoffset, size_t width,
     roi->dirty = false;
     if (xoffset > DISPLAY_WIDTH - 1 || yoffset > DISPLAY_HEIGHT - 1)
         return -EINVAL;
-    if (padding >= width)
-        return -EINVAL;
+    if (padding < 0)
+        padding = 0;
     col_end = xoffset + width - 1;
     row_end = yoffset + height - 1;
     if (col_end < 0 || row_end < 0)
@@ -419,11 +418,11 @@ int display_set_roi(struct display *dev, int xoffset, int yoffset, size_t width,
     roi->col_end = col_end > (DISPLAY_WIDTH - 1) ? (DISPLAY_WIDTH - 1) : col_end;
     roi->row_end = row_end > (DISPLAY_HEIGHT - 1) ? (DISPLAY_HEIGHT - 1) : row_end;
     roi->row_offset = yoffset % 8;
-    /*
-    debug("col[%u,%u] row[%u,%u] offset[%d]",
-          roi->col_start, roi->col_end, roi->row_start, roi->row_end, roi->row_offset);
-    */
     roi->dirty = true;
     spin_unlock(&roi->locker);
+    /*
+    debug("display[%u] col[%u,%u] row[%u,%u] offset[%d]",
+          dev->id, roi->col_start, roi->col_end, roi->row_start, roi->row_end, roi->row_offset);
+    //*/
     return 0;
 }

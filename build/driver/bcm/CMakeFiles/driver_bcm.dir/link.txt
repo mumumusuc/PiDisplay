@@ -1,0 +1,1 @@
+/usr/bin/cc  -fPIC  -O3 -Wall  -shared -Wl,-soname,libdriver_bcm.so -o libdriver_bcm.so CMakeFiles/driver_bcm.dir/__/driver.c.o CMakeFiles/driver_bcm.dir/bcm_gpio.c.o CMakeFiles/driver_bcm.dir/bcm_i2c.c.o CMakeFiles/driver_bcm.dir/bcm_spi.c.o /usr/local/lib/libbcm2835.a 

@@ -12,12 +12,14 @@
 #include <sys/mman.h>
 #include "ssd1306_user.h"
 
+
 static const char *fb_node = "/dev/fb1";
 static int interrupted = 0;
 static size_t width;
 static size_t height;
 static size_t size;
 static uint8_t *fb_mem = MAP_FAILED;
+static uint8_t block_size = 32;
 
 static void clean_up(int sig) {
     interrupted = 1;
@@ -80,17 +82,28 @@ int main(int argc, char *argv[]) {
     if (fb_mem == MAP_FAILED) {
         perror("mmap failed\n");
     } else {
-        uint8_t value = 1;
+        //uint8_t value = 1;
         size_t line_size = width * vinfo.bits_per_pixel / 8;
-        size_t set_size = line_size;
+        size_t set_size = line_size, clear_size = 0;
+        block_size = height/3;
         while (!interrupted) {
-            memset(fb_mem, value, set_size);
+            memset(fb_mem+set_size, 1, set_size);
+            memset(fb_mem, 0, clear_size);
+
             set_size += line_size;
-            if (set_size > size) {
+            if (set_size >= size) {
                 set_size = 0;
-                value = 1 - value;
+                //value = 1 - value;
             }
-            usleep(10*1000);
+            if (abs(set_size - clear_size) > block_size * line_size ||
+                clear_size >= (height - block_size) * line_size) {
+                clear_size += line_size;
+            }
+            if (clear_size >= size) {
+                clear_size = 0;
+                //value = 1 - value;
+            }
+            usleep(10 * 1000);
         }
     }
     clean_up(0);

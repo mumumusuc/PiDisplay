@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 
 project(ssd1306_spi4)
 # find linux kernel dir
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 exec_program(uname ARGS -r OUTPUT_VARIABLE CMAKE_HOST_SYSTEM_VERSION)
 set(KERNEL_INCLUDE "/home/mumumusuc/raspberry/linux")
 #set(KERNEL_INCLUDE "/usr/src/linux-headers-${CMAKE_HOST_SYSTEM_VERSION}")

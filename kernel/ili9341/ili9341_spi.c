@@ -35,11 +35,7 @@
 
 
 //#define REGISTER_SPI_BOARD_INFO
-/*  NOTICE
- *  in bcm2708-rpi-*.dts, spidev occupies spi0.0 and spi0.1.
- *  run "rmmod spidev" to remove spidev driver
- *  because device_initcall > module_init, so register spi_board_info with cs0&1 in this module may occurred error.
- * */
+
 #ifdef REGISTER_SPI_BOARD_INFO
 static struct spi_dev_info {
     u8 display_dc;
@@ -120,7 +116,7 @@ static int register_spi_device(u16 bus, struct spi_board_info *info) {
 /* from device tree */
 static const struct of_device_id spi_dt_ids[] = {
         {.compatible = DEVICE_NAME},
-        {.compatible = "spidev"},
+        //{.compatible = "spidev"},
         {},
 };
 MODULE_DEVICE_TABLE(of, spi_dt_ids);

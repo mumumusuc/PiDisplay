@@ -1,0 +1,1 @@
+/usr/bin/cc  -fPIC  -O3 -Wall  -shared -Wl,-soname,libdriver_linux.so -o libdriver_linux.so CMakeFiles/driver_linux.dir/__/driver.c.o CMakeFiles/driver_linux.dir/default_gpio.c.o CMakeFiles/driver_linux.dir/default_i2c.c.o CMakeFiles/driver_linux.dir/default_spi.c.o -Wl,-rpath,/opt/vc/lib /opt/vc/lib/libbcm_host.so 

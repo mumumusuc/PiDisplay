@@ -22,8 +22,15 @@
 #include <linux/completion.h>
 #include "hc_sr04.h"
 
-#define DEV_NAME    "hc-sr04"
+//#define DEV_DEBUG
 
+#ifdef DEV_DEBUG
+#define debug(fmt, ...)  printk(KERN_DEBUG"[%s] "fmt"\n",__func__,##__VA_ARGS__)
+#else
+#define debug(fmt, ...)  {}
+#endif
+
+#define DEV_NAME    "hc-sr04"
 #define SOUND_SPD               340
 #define ECHO_TIME_OUT           12 //ms
 #define PIN_TRIG                18
@@ -45,7 +52,6 @@ static hc_sr_t *hc_sr;
 
 static irqreturn_t irq_handler_echo(int irq, void *dev) {
     u8 lev = gpio_get_value(hc_sr->echo);
-    printk(KERN_INFO "[%s] echo = %d \n", __func__, lev);
     if (lev == 0) {
         // stop timer and calc distance
         struct timeval end;
@@ -53,7 +59,7 @@ static irqreturn_t irq_handler_echo(int irq, void *dev) {
         hc_sr->hold = CALC_TIME_US(hc_sr->time, end) / 2;
         hc_sr->interval = hc_sr->hold * SOUND_SPD / 1000;
         complete(&hc_sr->done);
-        printk(KERN_INFO "[%s] time = %d us, interval = %d mm\n", __func__, hc_sr->hold, hc_sr->interval);
+        debug("time = %d us, interval = %d mm", hc_sr->hold, hc_sr->interval);
     } else {
         // start timer
         do_gettimeofday(&hc_sr->time);
@@ -64,12 +70,11 @@ static irqreturn_t irq_handler_echo(int irq, void *dev) {
 static void hc_sr_trig(hc_sr_t *dev) {
     init_completion(&dev->done);
     while (gpio_get_value(dev->echo));
-    printk(KERN_INFO "[%s] \n", __func__);
+    debug();
     gpio_set_value(dev->trig, 1);
-    usleep_range(18,20);
+    usleep_range(18, 20);
     gpio_set_value(dev->trig, 0);
-    if (0 == wait_for_completion_timeout(&dev->done, ECHO_TIME_OUT))
-        printk(KERN_NOTICE "[%s] echo time out\n", __func__);
+    if (0 == wait_for_completion_timeout(&dev->done, ECHO_TIME_OUT)) debug("echo time out");
 }
 
 static int init_gpio(hc_sr_t *dev) {
@@ -86,10 +91,8 @@ static int init_gpio(hc_sr_t *dev) {
     }
     enable_irq(gpio_to_irq(echo));
     ret = request_irq(gpio_to_irq(echo), irq_handler_echo, ECHO_IRQ_FLAG, "hc_sr echo", NULL);
-    if (ret < 0) {
-        printk(KERN_ALERT"[%s] irq_request rising failed \n", __func__);
+    if (ret < 0)
         goto clear_gpio;
-    }
     return 0;
     clear_gpio:
     gpio_free(trig);
@@ -98,13 +101,13 @@ static int init_gpio(hc_sr_t *dev) {
 };
 
 static int dev_open(struct inode *inode, struct file *filp) {
-    printk(KERN_INFO "[%s] \n", __func__);
+    debug();
     filp->private_data = hc_sr;
     return 0;
 }
 
 static int dev_release(struct inode *inode, struct file *filp) {
-    printk(KERN_INFO "[%s] \n", __func__);
+    debug();
     filp->private_data = NULL;
     return 0;
 }
@@ -113,7 +116,7 @@ static ssize_t dev_read(struct file *filp, char __user *buf, size_t count, loff_
     int ret;
     hc_sr_t *dev = (hc_sr_t *) filp->private_data;
     size_t size = sizeof(u32);
-    printk(KERN_INFO "[%s] \n", __func__);
+    debug();
     if (*f_pos >= size) {
         *f_pos = 0;
         return 0;
@@ -126,7 +129,7 @@ static ssize_t dev_read(struct file *filp, char __user *buf, size_t count, loff_
     if (ret == 0) {
         *f_pos += count;
         ret = count;
-        printk(KERN_INFO "[%s] interval = %d mm\n", __func__, dev->interval);
+        //debug("interval = %d mm", dev->interval);
     }
     mutex_unlock(&dev->mutex);
     return ret;
@@ -152,19 +155,19 @@ static int __init hc_sr_init(void) {
 
     ret = misc_register(&hc_sr_dev);
     if (ret < 0) {
-        printk(KERN_ALERT"[%s] create misc device failed \n", __func__);
+        pr_err("create misc device failed\n");
         return ret;
     }
 
     hc_sr = (hc_sr_t *) kzalloc(sizeof(hc_sr_t), GFP_KERNEL);
     if (!hc_sr) {
-        printk(KERN_ALERT"[%s] alloc mem failed \n", __func__);
+        pr_err("alloc mem failed\n");
         return -ENOMEM;
     }
     hc_sr->trig = PIN_TRIG;
     hc_sr->echo = PIN_ECHO;
     ret = init_gpio(hc_sr);
-    if(ret<0){
+    if (ret < 0) {
         misc_deregister(&hc_sr_dev);
         return ret;
     }
@@ -173,7 +176,7 @@ static int __init hc_sr_init(void) {
 }
 
 static void __exit hc_sr_exit(void) {
-    printk(KERN_INFO "[%s] \n", __func__);
+    debug();
     misc_deregister(&hc_sr_dev);
     free_irq(gpio_to_irq(PIN_ECHO), NULL);
     mutex_destroy(&hc_sr->mutex);
@@ -184,5 +187,5 @@ static void __exit hc_sr_exit(void) {
 
 module_init(hc_sr_init);
 module_exit(hc_sr_exit);
-MODULE_LICENSE("GPL v2");
-MODULE_AUTHOR("mumumusuc");
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("mumumusuc@gmail.com");

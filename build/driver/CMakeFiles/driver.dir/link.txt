@@ -1,0 +1,1 @@
+/usr/bin/cc  -fPIC  -O3 -Wall  -shared -Wl,-soname,libdriver.so -o libdriver.so CMakeFiles/driver.dir/driver.c.o -Wl,-rpath,/media/nfs/workspace/PiDisplay/build/driver/bcm:/media/nfs/workspace/PiDisplay/build/driver/linux:/opt/vc/lib bcm/libdriver_bcm.so linux/libdriver_linux.so /usr/local/lib/libbcm2835.a /opt/vc/lib/libbcm_host.so 
